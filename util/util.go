@@ -2,6 +2,7 @@
 package util
 
 import (
+	"crypto/md5"
 	"fmt"
 	"regexp"
 	"rye/env"
@@ -51,6 +52,8 @@ func Dict2Context(ps *env.ProgramState, s1 env.Dict) env.RyeCtx {
 }
 
 func StringToFieldsWithQuoted(str string, sepa string, quote string) env.Block {
+	foo := md5.New()
+	foo.Reset()
 	quoted := false
 	spl := strings.FieldsFunc(str, func(r rune) bool {
 		if string(r) == quote {
