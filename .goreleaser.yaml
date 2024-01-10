@@ -74,7 +74,7 @@ kos:  # See https://goreleaser.com/customization/ko/
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog: # See https://goreleaser.com/customization/changelog/
-  use: github-native
+  use: github
   sort: asc
 
   groups:
