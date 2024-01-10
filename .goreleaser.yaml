@@ -35,12 +35,14 @@ builds:
 
     flags:
     - -tags=b_tiny
+    - -trimpath
 
     overrides:
     - goarch: wasm
       goos: js
       flags:
       - -tags=b_tiny,b_norepl
+      - -trimpath
 
 
 archives:
@@ -62,15 +64,17 @@ kos:  # See https://goreleaser.com/customization/ko/
   - repository: ghcr.io/stefanb/rye
     tags:
     - '{{.Version}}'
-    - latest
+    - '{{ if not .Prerelease }}latest{{ end }}' 
     bare: true
     preserve_import_paths: false
     platforms:
     - linux/amd64
     - linux/arm64
 
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
 changelog: # See https://goreleaser.com/customization/changelog/
-  use: github
+  use: github-native
   sort: asc
 
   groups:
