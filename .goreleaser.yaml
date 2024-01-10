@@ -64,7 +64,7 @@ kos:  # See https://goreleaser.com/customization/ko/
   - repository: ghcr.io/stefanb/rye
     tags:
     - '{{.Version}}'
-    - '{{ if not .Prerelease }}latest{{ end }}' 
+    - 'latest' 
     bare: true
     preserve_import_paths: false
     platforms:
