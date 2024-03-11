@@ -7,7 +7,7 @@ go 1.21
 retract v0.0.11 // Published accidentally with a bug
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.25.2
+	github.com/aws/aws-sdk-go-v2 v1.25.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.4
 	github.com/aws/aws-sdk-go-v2/service/ses v1.22.1
 	github.com/blevesearch/bleve/v2 v2.3.10
