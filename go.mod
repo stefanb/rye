@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.25.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.4
 	github.com/aws/aws-sdk-go-v2/service/ses v1.22.1
-	github.com/blevesearch/bleve/v2 v2.3.10
+	github.com/blevesearch/bleve/v2 v2.4.0
 	github.com/blevesearch/bleve_index_api v1.1.6
 	github.com/drewlanenga/govector v0.0.0-20220726163947-b958ac08bc93
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
@@ -35,6 +35,7 @@ require (
 	golang.org/x/crypto v0.20.0
 	golang.org/x/net v0.21.0
 	golang.org/x/sync v0.6.0
+	golang.org/x/term v0.17.0
 	golang.org/x/text v0.14.0
 )
 
@@ -52,11 +53,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.1 // indirect
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/blevesearch/geo v0.1.18 // indirect
+	github.com/blevesearch/geo v0.1.20 // indirect
+	github.com/blevesearch/go-faiss v1.0.13 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
-	github.com/blevesearch/scorch_segment_api/v2 v2.1.6 // indirect
+	github.com/blevesearch/scorch_segment_api/v2 v2.2.9 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.2 // indirect
@@ -66,6 +68,7 @@ require (
 	github.com/blevesearch/zapx/v13 v13.3.10 // indirect
 	github.com/blevesearch/zapx/v14 v14.3.10 // indirect
 	github.com/blevesearch/zapx/v15 v15.3.13 // indirect
+	github.com/blevesearch/zapx/v16 v16.0.12 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
@@ -93,7 +96,6 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
