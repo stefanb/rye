@@ -146,8 +146,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/refaktor/go-peg v0.0.0-20220116201714-31e3dfa8dc7d h1:FXrWUGgPRzhaZIBho8zNLSrMp0VpP8E9+wbRRnJYlbE=
 github.com/refaktor/go-peg v0.0.0-20220116201714-31e3dfa8dc7d/go.mod h1:iIkrsFobLIWX8kQ6Oqj4cl4nwdMSE92DWpWwk9YlG9s=
-github.com/refaktor/liner v1.2.6 h1:UtI+H2w5L9z6ASQ2nZlJCZ/9AB12sGYY0xgJUT2g8kg=
-github.com/refaktor/liner v1.2.6/go.mod h1:ziZSGVYZ4OzZ9kbeB254MtIrxxQlDibULRQGlDi1iK8=
+github.com/refaktor/liner v1.2.10 h1:MjbQj9EfNuSFnNk9zan37xpkNIRpsWKenyIBg7FZdVw=
+github.com/refaktor/liner v1.2.10/go.mod h1:ziZSGVYZ4OzZ9kbeB254MtIrxxQlDibULRQGlDi1iK8=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/sashabaranov/go-openai v1.20.2 h1:nilzF2EKzaHyK4Rk2Dbu/aJEZbtIvskDIXvfS4yx+6M=
