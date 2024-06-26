@@ -7,7 +7,7 @@ go 1.21
 retract v0.0.11 // Published accidentally with a bug
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.27.2
+	github.com/aws/aws-sdk-go-v2 v1.30.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/service/ses v1.22.11
 	github.com/bitfield/script v0.22.1
