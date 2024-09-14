@@ -32,7 +32,6 @@ require (
 	github.com/mrz1836/postmark v1.6.5
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
 	github.com/refaktor/go-peg v0.0.0-20220116201714-31e3dfa8dc7d
-	github.com/refaktor/liner v1.2.10
 	github.com/sashabaranov/go-openai v1.29.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/thomasberger/parsemail v1.2.7
@@ -41,7 +40,7 @@ require (
 	golang.org/x/net v0.28.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/term v0.23.0
-	golang.org/x/text v0.17.0
+	golang.org/x/text v0.18.0
 )
 
 require (
