@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ses v1.26.2
 	github.com/bitfield/script v0.23.0
 	github.com/blevesearch/bleve/v2 v2.4.2
-	github.com/blevesearch/bleve_index_api v1.1.11
+	github.com/blevesearch/bleve_index_api v1.1.12
 	github.com/drewlanenga/govector v0.0.0-20220726163947-b958ac08bc93
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/fsnotify/fsnotify v1.7.0
@@ -32,7 +32,6 @@ require (
 	github.com/mrz1836/postmark v1.6.5
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
 	github.com/refaktor/go-peg v0.0.0-20220116201714-31e3dfa8dc7d
-	github.com/refaktor/liner v1.2.10
 	github.com/sashabaranov/go-openai v1.29.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/thomasberger/parsemail v1.2.7
