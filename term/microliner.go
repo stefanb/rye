@@ -1,15 +1,18 @@
-package util
+package term
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
-	"strconv"
+	"io"
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
+	// "github.com/refaktor/rye/term"
 )
 
 // These character classes are mostly zero width (when combined).
@@ -107,6 +110,179 @@ func (s *MLState) cursorPos2(x int, y int) {
 	}
 }
 
+// HISTORY
+
+func (s *MLState) ReadHistory(r io.Reader) (num int, err error) {
+	s.historyMutex.Lock()
+	defer s.historyMutex.Unlock()
+
+	in := bufio.NewReader(r)
+	num = 0
+	for {
+		line, part, err := in.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return num, err
+		}
+		if part {
+			return num, fmt.Errorf("line %d is too long", num+1)
+		}
+		if !utf8.Valid(line) {
+			return num, fmt.Errorf("invalid string at line %d", num+1)
+		}
+		num++
+		s.history = append(s.history, string(line))
+		if len(s.history) > HistoryLimit {
+			s.history = s.history[1:]
+		}
+	}
+	return num, nil
+}
+
+// WriteHistory writes scrollback history to w. Returns the number of lines
+// successfully written, and any write error.
+//
+// Unlike the rest of liner's API, WriteHistory is safe to call
+// from another goroutine while Prompt is in progress.
+// This exception is to facilitate the saving of the history buffer
+// during an unexpected exit (for example, due to Ctrl-C being invoked)
+func (s *MLState) WriteHistory(w io.Writer) (num int, err error) {
+	s.historyMutex.RLock()
+	defer s.historyMutex.RUnlock()
+
+	for _, item := range s.history {
+		_, err := fmt.Fprintln(w, item)
+		if err != nil {
+			return num, err
+		}
+		num++
+	}
+	return num, nil
+}
+
+// TAB COMPLETER
+
+func (s *MLState) circularTabs(items []string) func(direction int) (string, error) {
+	item := -1
+	return func(direction int) (string, error) {
+		if direction == 1 {
+			if item < len(items)-1 {
+				item++
+			} else {
+				item = 0
+			}
+		}
+		return items[item], nil
+	}
+}
+
+func (s *MLState) tabComplete(p []rune, line []rune, pos int, mode int) ([]rune, int, KeyEvent, error) {
+	// if no completer defined
+	if s.completer == nil {
+		return line, pos, KeyEvent{Code: 27}, nil
+	}
+	// ifcompleter run it
+	head, list, tail := s.completer(string(line), pos, mode)
+	if len(list) <= 0 {
+		return line, pos, KeyEvent{Code: 27}, nil
+	}
+	// if there is one result
+	hl := utf8.RuneCountInString(head)
+	if len(list) == 1 {
+		err := s.refresh(p, []rune(head+list[0]+tail), hl+utf8.RuneCountInString(list[0]))
+		return []rune(head + list[0] + tail), hl + utf8.RuneCountInString(list[0]), KeyEvent{Code: 27}, err
+	}
+	// same as no result for now
+	//	return line, pos, KeyEvent{Code: 27}, nil
+
+	direction := 1
+	tabPrinter := s.circularTabs(list)
+	for {
+		pick, err := tabPrinter(direction)
+		if err != nil {
+			return line, pos, KeyEvent{Code: 27}, err
+		}
+		err = s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
+		if err != nil {
+			return line, pos, KeyEvent{Code: 27}, err
+		}
+
+		next := <-s.next
+		//if err != nil {
+		//	return line, pos, KeyEvent{Code: 27}, err
+		// }
+		if next.Code == 9 {
+			direction = 1
+			continue
+		}
+		if next.Code == 27 {
+			return line, pos, KeyEvent{Code: 27}, nil
+		}
+		return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
+	}
+
+	/*
+		direction := tabForward
+
+		if s.tabStyle == TabPrints {
+			tabPrinter = s.printedTabs(list)
+		}
+
+		for {
+			pick, err := tabPrinter(direction)
+			if err != nil {
+				return line, pos, rune(27), err
+			}
+			err = s.refresh(p, []rune(head+pick+tail), hl+utf8.RuneCountInString(pick))
+			if err != nil {
+				return line, pos, rune(27), err
+			}
+
+			next, err := s.readNext()
+			if err != nil {
+				return line, pos, rune(27), err
+			}
+			if key, ok := next.(rune); ok {
+				if key == 9 {
+					direction = tabForward
+					continue
+				}
+				if key == 27 {
+					return line, pos, rune(27), nil
+				}
+			}
+			if a, ok := next.(action); ok && a == shiftTab {
+				direction = tabReverse
+				continue
+			}
+			return []rune(head + pick + tail), hl + utf8.RuneCountInString(pick), next, nil
+		} */
+}
+
+// Completer takes the currently edited line content at the left of the cursor
+// to the completer which may return {"Hello, world", "Hello, Word"} to have "Hello, world!!!".
+type Completer func(line string, mode int) []string
+
+// WordCompleter takes the currently edited line with the cursor position and
+// to the completer which may returns ("Hello, ", {"world", "Word"}, "!!!") to have "Hello, world!!!".
+type WordCompleter func(line string, pos int, mode int) (head string, completions []string, tail string)
+
+// SetCompleter sets the completion function that Liner will call to
+// fetch completion candidates when the user presses tab.
+func (s *MLState) SetCompleter(f Completer) {
+	if f == nil {
+		s.completer = nil
+		return
+	}
+	s.completer = func(line string, pos int, mode int) (string, []string, string) {
+		return "", f(string([]rune(line)[:pos]), mode), string([]rune(line)[pos:])
+	}
+}
+
+// END COMPLETER
+
 func (s *MLState) eraseLine() {
 	//str := fmt.Sprintf("\x1b[0K")
 	// s.sendBack("\x1b[0K")
@@ -150,9 +326,11 @@ type MLState struct {
 	lastLineString bool
 	prevLines      int
 	prevCursorLine int
-	// killRing *ring.Ring
-	//	completer         WordCompleter
+	completer      WordCompleter
+	lines          []string // added for the multiline behaviour
+	currline       int      // same
 	// pending     []rune
+	// killRing *ring.Ring
 }
 
 // NewLiner initializes a new *State, and sets the terminal into raw mode. To
@@ -173,12 +351,19 @@ func (s *MLState) getColumns() bool {
 	return true
 }
 
+func (s *MLState) SetColumns(cols int) bool {
+	s.columns = cols
+	//	fmt.Print("*setColumns* : ")
+	//	fmt.Println(s.columns)
+	return true
+}
+
 // Redrawing input
 // Called when it needs to redraw / refresh the current input, dispatches to single line and multiline
 
 func (s *MLState) refresh(prompt []rune, buf []rune, pos int) error {
 	s.needRefresh = false
-	return s.refreshSingleLine(prompt, buf, pos)
+	return s.refreshSingleLine_NO_WRAP(prompt, buf, pos)
 }
 
 // HISTORY
@@ -381,8 +566,8 @@ func splitText2(text string, splitLength int) []string {
 	return result
 }
 
-func (s *MLState) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
-	traceTop(pos, 0)
+func (s *MLState) refreshSingleLine_WITH_WRAP_HALFMADE(prompt []rune, buf []rune, pos int) error {
+	// traceTop(pos, 0)
 	// s.sendBack("\033[?25l") // hide cursors
 	/// s.cursorPos(0)
 	/// s.sendBack("\033[K")
@@ -403,7 +588,7 @@ func (s *MLState) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 	text := string(buf)
 	texts := splitText2(text, cols)
 
-	traceTop(len(texts), 0)
+	// traceTop(len(texts), 0)
 
 	// inString := false
 	// text2 := wordwrap.String(text, 5)
@@ -455,9 +640,35 @@ func (s *MLState) refreshSingleLine(prompt []rune, buf []rune, pos int) error {
 	return nil
 }
 
+func (s *MLState) refreshSingleLine_NO_WRAP(prompt []rune, buf []rune, pos int) error {
+	pLen := countGlyphs(prompt)
+	text := string(buf)
+	cols := s.columns - 6
+	s.cursorPos(0)
+	s.sendBack("\033[K") // delete line
+	s.sendBack(string(prompt))
+	tt2, inString := RyeHighlight(text, s.lastLineString, cols)
+	s.sendBack(tt2)
+	s.inString = inString
+	curLeft := pLen + pos
+	s.cursorPos2(curLeft, 0) // s.prevCursorLine-curLineN)
+	return nil
+}
+
+func getLengthOfLastLine(input string) (int, bool) {
+	if !strings.Contains(input, "\n") {
+		return len(input), false
+	}
+
+	lines := strings.Split(input, "\n")
+	lastLine := lines[len(lines)-1]
+	return len(lastLine) - 3, true // for the prefix because currently string isn't padded on left line TODO unify this
+}
+
 // signals end-of-file by pressing Ctrl-D.
 func (s *MLState) MicroPrompt(prompt string, text string, pos int, ctx1 context.Context) (string, error) {
 	// history related
+	refreshAllLines := false
 	historyEnd := ""
 	var historyPrefix []string
 	historyPos := 0
@@ -469,13 +680,11 @@ startOfHere:
 
 	var p []rune
 	var line = []rune(text)
-	if !multiline {
-		s.sendBack(prompt)
+
+	if s.currline == 0 {
 		p = []rune(prompt)
 	} else {
-		s.sendBack("   ")
-		p = []rune("   ")
-		multiline = false
+		p = []rune(".. ")
 	}
 
 	// defer s.stopPrompt()
@@ -485,19 +694,19 @@ startOfHere:
 		pos = len(line)
 	}
 	// if len of line is > 0 then refresh
-	if len(line) > 0 {
-		err := s.refresh(p, line, pos)
-		if err != nil {
-			return "", err
-		}
+	// if len(line) > 0 {
+	err := s.refresh(p, line, pos)
+	if err != nil {
+		return "", err
 	}
+	// }
 	// var next string
 
 	// LBL restart:
 	//	s.startPrompt()
 	//	s.getColumns()
 	s.getColumns()
-	traceTop(strconv.Itoa(s.columns)+"**", 0)
+	// traceTop(strconv.Itoa(s.columns)+"**", 0)
 
 	histPrev := func() {
 		if historyStale {
@@ -511,7 +720,14 @@ startOfHere:
 			}
 			historyPos--
 			line = []rune(historyPrefix[historyPos])
-			pos = len(line)
+			pos, multiline = getLengthOfLastLine(string(line)) // TODO
+			if multiline {
+				s.lines = strings.Split(string(line), "\n")
+				s.currline = len(s.lines) - 1
+				line = []rune(s.lines[len(s.lines)-1])
+				refreshAllLines = true
+				s.inString = false
+			}
 			s.needRefresh = true
 		} else {
 			s.doBeep()
@@ -531,7 +747,11 @@ startOfHere:
 			} else {
 				line = []rune(historyPrefix[historyPos])
 			}
-			pos = len(line)
+			pos, multiline = getLengthOfLastLine(string(line))
+			if multiline {
+				s.lines = strings.Split(string(line), "\n")
+				s.currline = len(s.lines) - 1
+			}
 			s.needRefresh = true
 		} else {
 			s.doBeep()
@@ -541,11 +761,13 @@ startOfHere:
 	// JM
 	//	s_instr := 0
 
+	tabCompletionWasActive := false
+
 	// mainLoop:
 	for {
 		select {
 		case <-ctx1.Done():
-			// fmt.Println("Exitin due to coancelation")
+			fmt.Println("Exiting due to cancelation")
 			return "", nil
 		default:
 			trace("POS: ")
@@ -570,25 +792,23 @@ startOfHere:
 			len(p)+len(line) < s.columns*4 && // Avoid countGlyphs on large lines
 			countGlyphs(p)+countGlyphs(line) < s.columns-1 {*/
 			///// pLen := countGlyphs(p)
-
+		haveNext:
 			if next.Ctrl {
 				switch strings.ToLower(next.Key) {
-				case "x":
-					// TEMP copy of code below ... refactor
+				// next line0,
+				case "n":
 					historyStale = true
 					s.lastLineString = false
-					// trace2("NL")
-					s.sendBack(fmt.Sprintf("%s⏎\n%s", color_emph, reset))
+					s.sendBack(fmt.Sprintf("%s\n%s", color_emph, reset)) // ⏎
 					if s.inString {
 						s.lastLineString = true
 					}
-					s.enterLine(string(line) + " ")
+					// DONT SEND LINE BACK BUT STORE IT
+					// s.enterLine(string(line) + " ")
+					s.currline += 1
+					s.lines = append(s.lines, string(line))
 					pos = 0
-					//if xx == "next line" {
 					multiline = true
-					//} else {
-					//	s.sendBack("") // WW?
-					//}
 					line = make([]rune, 0)
 					trace(line)
 					goto startOfHere
@@ -597,7 +817,14 @@ startOfHere:
 					line = line[:0]
 					pos = 0
 					s.restartPrompt() */
-					// fmt.Print("case C")
+					fmt.Println("[ Ctrl+C detected in Microliner , Use Ctrl+D to Exit ]")
+					// return "", nil
+				case "d":
+					/* return "", ErrPromptAborted
+					line = line[:0]
+					pos = 0
+					s.restartPrompt() */
+					fmt.Println("Ctrl+D detected in Microliner")
 					return "", nil
 				case "a":
 					pos = 0
@@ -643,10 +870,15 @@ startOfHere:
 						pos = 0
 						s.needRefresh = true
 					}
-				case "n":
-					histNext()
-				case "p":
-					histPrev()
+				//case "n":
+				//	histNext()
+				// case "p":
+				//	histPrev()
+				case "s": // seek in context #experimental
+					fmt.Print("*")
+					line, pos, next, _ = s.tabComplete(p, line, pos, 1)
+					tabCompletionWasActive = true
+					goto haveNext
 				}
 			} else if next.Alt {
 				switch strings.ToLower(next.Key) {
@@ -728,25 +960,61 @@ startOfHere:
 				}
 			} else {
 				switch next.Code {
-				case 13: // Enter
-					historyStale = true
-					s.lastLineString = false
-					// trace2("NL")
-					if len(line) > 0 && unicode.IsSpace(line[len(line)-1]) {
-						s.sendBack(fmt.Sprintf("%s⏎\n%s", color_emph, reset))
+				case 13: // Enter Newline
+					if s.inString {
+						// This is copy from ctrl+x code above ... deduplicate and systemize TODO
+						historyStale = true
+						s.lastLineString = false
+						s.sendBack(fmt.Sprintf("%s\n%s", color_emph, reset)) //
 						if s.inString {
 							s.lastLineString = true
 						}
-					} else {
-						s.sendBack("\n")
+						// DONT SEND LINE BACK BUT STORE IT
+						// s.enterLine(string(line) + " ")
+						s.lines = append(s.lines, string(line))
+						pos = 0
+						multiline = true
+						s.currline += 1
+						line = make([]rune, 0)
+						trace(line)
+						goto startOfHere
 					}
-					xx := s.enterLine(string(line))
+					if tabCompletionWasActive {
+						// TODO --- make it into a function - deduplicate
+						fmt.Println("")
+						ClearLine()
+						CurUp(1)
+					}
+					historyStale = true
+					s.lastLineString = false
+					s.sendBack("\n")
+					xx := ""
+					if multiline {
+						// fmt.Println(s.currline)
+						// fmt.Println(len(s.lines))
+						if s.currline > len(s.lines)-1 {
+							s.lines = append(s.lines, string(line))
+						} else {
+							s.lines[s.currline] = string(line)
+							if len(s.lines) > s.currline+1 {
+								CurDown(len(s.lines) - s.currline)
+								fmt.Println("")
+							}
+						}
+						xx = s.enterLine(strings.Join(s.lines, "\n"))
+					} else {
+						xx = s.enterLine(string(line))
+
+					}
 					pos = 0
+					multiline = false
 					if xx == "next line" {
 						multiline = true
 					} else {
 						s.sendBack("") // WW?
 					}
+					s.currline = 0
+					s.lines = make([]string, 0)
 					line = make([]rune, 0)
 					trace(line)
 					goto startOfHere
@@ -770,6 +1038,10 @@ startOfHere:
 						pos -= n
 						s.needRefresh = true
 					}
+				case 9: // Tab completion
+					line, pos, next, _ = s.tabComplete(p, line, pos, 0)
+					tabCompletionWasActive = true
+					goto haveNext
 				case 46: // Del
 					if pos >= len(line) {
 						s.doBeep()
@@ -785,22 +1057,61 @@ startOfHere:
 						s.doBeep()
 					}
 				case 37: // Left
-					if pos > 0 {
+					if pos > 1 {
 						pos -= len(getSuffixGlyphs(line[:pos], 1))
 						traceTop(pos, 3)
 					} else {
 						s.doBeep()
 					}
 				case 38: // Up
-					histPrev()
+					if multiline {
+						if s.currline > 0 { //  len(s.lines) {
+							CurUp(1)
+							// append the last line -- only when in last line but ok for now
+							if s.currline > len(s.lines)-1 {
+								s.lines = append(s.lines, string(line))
+							} else {
+								s.lines[s.currline] = string(line)
+							}
+							s.currline -= 1                    // later increment
+							line = []rune(s.lines[s.currline]) // + "⏎")
+							if pos > len(line) {
+								pos = len(line) - 1
+							}
+						}
+					} else {
+						histPrev()
+					}
 				case 40: // Down
-					histNext()
+					if multiline {
+						if s.currline < len(s.lines)-1 {
+							CurDown(1)
+							// append the last line -- only when in last line but ok for now
+							s.lines[s.currline] = string(line)
+							s.currline += 1                    // later increment
+							line = []rune(s.lines[s.currline]) // + "⏎...")
+							if pos > len(line) {
+								pos = len(line) - 1
+							}
+						}
+					} else {
+						histNext()
+					}
 				case 36: // Home
 					pos = 0
 				case 35: // End
 					pos = len(line)
+				case 27: // Escape
+
 				default:
-					trace("***************************** ALARM *******************")
+					if (next.Key == " ") && tabCompletionWasActive {
+						// TODO --- make it into a function - deduplicate
+						// CurDown(1)
+						fmt.Println("")
+						ClearLine()
+						CurUp(1)
+					}
+
 					vs := []rune(next.Key)
 					v := vs[0]
 
@@ -1177,9 +1488,38 @@ startOfHere:
 			} */
 			//if true || s.needRefresh { //&& !s.inputWaiting() {
 			// ALWAYS REFRESH SO WE HAVE JUST ONE TRUTH
-			err := s.refresh(p, line, pos)
-			if err != nil {
-				return "", err
+			if refreshAllLines {
+				for i, line1 := range s.lines {
+					if i == 0 {
+						//	s.sendBack(prompt)
+						p = []rune(prompt)
+					} else {
+						//	s.sendBack(".. ")
+						fmt.Println("") // turn to sendback
+						p = []rune("=> ")
+						//// WWW multiline = false
+					}
+					err := s.refresh(p, []rune(line1), pos)
+					if err != nil {
+						fmt.Println("Exiting due to error at refreshAllLines")
+						return "", err
+					}
+				}
+				refreshAllLines = false
+			} else {
+				if s.currline == 0 {
+					//	s.sendBack(prompt)
+					p = []rune(prompt)
+				} else {
+					//	s.sendBack(".. ")
+					p = []rune("-> ")
+					//// WWW multiline = false
+				}
+				err := s.refresh(p, line, pos)
+				if err != nil {
+					fmt.Println("Exiting due to error at refresh")
+					return "", err
+				}
 			}
 			// } else {
 			///// s.cursorPos(pLen + pos)
@@ -1193,201 +1533,4 @@ startOfHere:
 		}
 	}
 	// return string(line), nil
-}
-
-const bright = "\x1b[1m"
-const dim = "\x1b[2m"
-const black = "\x1b[30m"
-const red = "\x1b[31m"
-const green = "\x1b[32m"
-const yellow = "\x1b[33m"
-const blue = "\x1b[34m"
-const magenta = "\x1b[35m"
-const cyan = "\x1b[36m"
-const white = "\x1b[37m"
-const reset = "\x1b[0m"
-const reset2 = "\033[39;49m"
-
-const color_word1 = cyan
-const color_word2 = yellow
-const color_num2 = magenta
-const color_string2 = green
-const color_comment = dim + white
-const color_emph = bright
-
-type HighlightedStringBuilder struct {
-	b strings.Builder
-}
-
-func (h *HighlightedStringBuilder) WriteRune(c rune) {
-	h.b.WriteRune(c)
-}
-
-func (h *HighlightedStringBuilder) String() string {
-	return h.b.String()
-}
-
-func (h *HighlightedStringBuilder) ColoredString(inStr bool) string {
-	return h.getColor(inStr) + h.b.String() + reset
-}
-
-func (h *HighlightedStringBuilder) Reset() {
-	h.b.Reset()
-}
-
-func (h *HighlightedStringBuilder) getColor(inStr bool) string {
-	s := h.b.String()
-	if len(s) == 0 {
-		return ""
-	}
-	if strings.HasPrefix(s, ";") {
-		return color_comment
-	}
-	if inStr || hasPrefixMultiple(s, "\"", "`") {
-		return color_string2
-	}
-	if strings.HasPrefix(s, "%") && len(s) != 1 {
-		return color_string2
-	}
-	if hasPrefixMultiple(s, "?", "~", "|", "\\", ".", "'", "<") {
-		if len(s) != 1 {
-			return color_word2
-		}
-	}
-	if strings.HasPrefix(s, ":") {
-		if strings.HasPrefix(s, "::") {
-			if len(s) != 2 {
-				return color_emph + color_word1
-			}
-		} else if len(s) != 1 {
-			return color_word1
-		}
-	}
-	if strings.HasSuffix(s, ":") {
-		if strings.HasSuffix(s, "::") {
-			if len(s) != 2 {
-				return color_emph + color_word1
-			}
-		} else if len(s) != 1 {
-			return color_word1
-		}
-	}
-	if unicode.IsNumber(rune(s[0])) {
-		return color_num2
-	}
-	if unicode.IsLetter(rune(s[0])) {
-		if strings.Contains(s, "://") {
-			return color_string2
-		}
-		if strings.HasSuffix(s, "!") || strings.HasPrefix(s, "set-") {
-			return color_emph + color_word2
-		}
-		return color_word2
-	}
-	return ""
-}
-
-func hasPrefixMultiple(s string, prefixes ...string) bool {
-	for _, p := range prefixes {
-		if strings.HasPrefix(s, p) {
-			return true
-		}
-	}
-	return false
-}
-
-func RyeHighlight(s string, inStrX bool, columns int) (string, bool) {
-	var fullB strings.Builder
-	var hb HighlightedStringBuilder
-
-	var inComment, inStr1, inStr2 bool
-	inStr1 = inStrX
-
-	for _, c := range s {
-		//if (i+2)%columns == 0 {
-		//	hb.WriteRune('\n')
-		// hb.WriteRune('\r')
-		// }
-		if inComment {
-			hb.WriteRune(c)
-		} else if c == ';' && !inStr1 && !inStr2 {
-			inComment = true
-			hb.WriteRune(c)
-		} else if c == '"' {
-			hb.WriteRune(c)
-			if inStr1 {
-				// trace2(".")
-				fullB.WriteString(hb.ColoredString(inStr1))
-				inStr1 = false
-				hb.Reset()
-			} else {
-				inStr1 = true
-			}
-		} else if c == '`' {
-			hb.WriteRune(c)
-			if inStr2 {
-				inStr2 = false
-				fullB.WriteString(hb.ColoredString(inStr1))
-				hb.Reset()
-			} else {
-				inStr2 = true
-			}
-		} else if unicode.IsSpace(c) && !inComment && !inStr1 && !inStr2 {
-			fullB.WriteString(hb.ColoredString(inStr1))
-			hb.Reset()
-
-			fullB.WriteRune(c)
-		} else {
-			hb.WriteRune(c)
-		}
-	}
-	fullB.WriteString(hb.ColoredString(inStr1))
-	hb.Reset()
-	return fullB.String(), inStr1
-}
-
-func RyeHighlight_OLD1(s string, inStrX bool) (string, bool) {
-	var fullB strings.Builder
-	var hb HighlightedStringBuilder
-
-	var inComment, inStr1, inStr2 bool
-	inStr1 = inStrX
-
-	for _, c := range s {
-		if inComment {
-			hb.WriteRune(c)
-		} else if c == ';' && !inStr1 && !inStr2 {
-			inComment = true
-			hb.WriteRune(c)
-		} else if c == '"' {
-			hb.WriteRune(c)
-			if inStr1 {
-				// trace2(".")
-				fullB.WriteString(hb.ColoredString(inStr1))
-				inStr1 = false
-				hb.Reset()
-			} else {
-				inStr1 = true
-			}
-		} else if c == '`' {
-			hb.WriteRune(c)
-			if inStr2 {
-				inStr2 = false
-				fullB.WriteString(hb.ColoredString(inStr1))
-				hb.Reset()
-			} else {
-				inStr2 = true
-			}
-		} else if unicode.IsSpace(c) && !inComment && !inStr1 && !inStr2 {
-			fullB.WriteString(hb.ColoredString(inStr1))
-			hb.Reset()
-
-			fullB.WriteRune(c)
-		} else {
-			hb.WriteRune(c)
-		}
-	}
-	fullB.WriteString(hb.ColoredString(inStr1))
-	hb.Reset()
-	return fullB.String(), inStr1
 }

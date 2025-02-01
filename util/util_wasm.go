@@ -3,6 +3,6 @@
 
 package util
 
-func GetTerminalColumns() int {
-	return 50
+func BeforeExit() {
+
 }

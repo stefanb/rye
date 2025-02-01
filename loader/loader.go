@@ -77,9 +77,9 @@ func LoadString(input string, sig bool) (env.Object, *env.Idxs) {
 	if sig {
 		signed := checkCodeSignature(input)
 		if signed == -1 {
-			return *env.NewError(""), wordIndex
+			return env.NewError(""), wordIndex
 		} else if signed == -2 {
-			return *env.NewError(""), wordIndex
+			return env.NewError(""), wordIndex
 		}
 	}
 
@@ -121,9 +121,9 @@ func LoadStringNEW(input string, sig bool, ps *env.ProgramState) env.Object {
 	if sig {
 		signed := checkCodeSignature(input)
 		if signed == -1 {
-			return *env.NewError("")
+			return env.NewError("Sig err: 1")
 		} else if signed == -2 {
-			return *env.NewError("")
+			return env.NewError("Sig err: 2")
 		}
 	}
 
@@ -149,7 +149,7 @@ func LoadStringNEW(input string, sig bool, ps *env.ProgramState) env.Object {
 		bu.WriteString(errStr)
 
 		ps.FailureFlag = true
-		return *env.NewError(bu.String())
+		return env.NewError(bu.String())
 		// empty1 := make([]env.Object, 0)
 		// ser := env.NewTSeries(empty1)
 		// return *env.NewBlock(*ser)
@@ -246,6 +246,10 @@ func parseString(v *Values, d Any) (Any, error) {
 	str := v.Token()[1 : len(v.Token())-1]
 	// turn \n to newlines
 	str = strings.Replace(str, "\\n", "\n", -1)
+	//str = strings.Replace(str, "\\r", "\r", -1)
+	//str = strings.Replace(str, "\\t", "\t", -1)
+	//str = strings.Replace(str, "\\\"", "\"", -1)
+	//str = strings.Replace(str, "\\\\", "\\", -1)
 	return *env.NewString(str), nil
 }
 
@@ -395,7 +399,7 @@ func parsePipeword(v *Values, d Any) (Any, error) {
 	word := v.Token()
 	force := 0
 	var idx int
-	if word == ">>" || word == "->" || word == "-->" {
+	if word == ">>" || word == "->" || word == "~>" || word == "-->" {
 		idx = wordIndex.IndexWord("_" + word)
 	} else {
 		if word[len(word)-1:] == "*" {
@@ -448,7 +452,7 @@ func newParser() *Parser { // TODO -- add string eaddress path url time
 	LSETWORD    	<-  ":" LETTER LETTERORNUM*
 	LMODWORD    	<-  "::" LETTER LETTERORNUM*
 	GETWORD   		<-  "?" LETTER LETTERORNUM*
-	PIPEWORD   		<-  "/" LETTER LETTERORNUM* / "|" LETTER LETTERORNUM* / PIPEARROWS / "|" NORMOPWORDS  
+	PIPEWORD   		<-  "\\" LETTER LETTERORNUM* / "|" LETTER LETTERORNUM* / PIPEARROWS / "|_" PIPEARROWS / "|" NORMOPWORDS  
 	ONECHARPIPE    	<-  "|" ONECHARWORDS
 	OPWORD    		<-  "." LETTER LETTERORNUM* / "." NORMOPWORDS / OPARROWS / ONECHARWORDS / "[*" LETTERORNUM*
 	TAGWORD    		<-  "'" LETTER LETTERORNUM*

@@ -1,15 +1,16 @@
-//go:build !no_devops
-// +build !no_devops
+//go:build !no_os && !b_wasm
 
 package evaldo
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/refaktor/rye/env"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -37,7 +38,7 @@ func FileExists(filePath string) int {
 
 var Builtins_os = map[string]*env.Builtin{
 
-	"cwd": {
+	"cwd?": {
 		Argsn: 0,
 		Doc:   "Returns current working directory.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
@@ -63,6 +64,24 @@ var Builtins_os = map[string]*env.Builtin{
 				return arg0
 			default:
 				return MakeArgError(ps, 1, []env.Type{env.UriType}, "cd")
+			}
+		},
+	},
+
+	"env?": {
+		Argsn: 1,
+		Doc:   "Gets the environment variable.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch variable_name := arg0.(type) {
+			case env.String:
+
+				val, ok := os.LookupEnv(variable_name.Value)
+				if !ok {
+					return MakeBuiltinError(ps, "Variable couldn't be read", "env?")
+				}
+				return env.NewString(val)
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.StringType}, "env?")
 			}
 		},
 	},
@@ -106,6 +125,18 @@ var Builtins_os = map[string]*env.Builtin{
 			default:
 				return MakeArgError(ps, 1, []env.Type{env.UriType}, "mkdir")
 			}
+		},
+	},
+
+	"mktmp": {
+		Argsn: 0,
+		Doc:   "Creates a temporary directory.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			dir, err := os.MkdirTemp("", "rye-tmp-")
+			if err != nil {
+				return MakeBuiltinError(ps, "Error creating temporary directory: "+err.Error(), "mktmp")
+			}
+			return *env.NewUri1(ps.Idx, "file://"+dir)
 		},
 	},
 
@@ -188,14 +219,14 @@ var Builtins_os = map[string]*env.Builtin{
 	},
 	"users?": {
 		Argsn: 0,
-		Doc:   "Get information about users as a spreadsheet.",
+		Doc:   "Get information about users as a table.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			users, err := host.Users()
 			if err != nil {
 				return MakeBuiltinError(ps, err.Error(), "users?")
 			}
 			fmt.Println(users)
-			s := env.NewSpreadsheet([]string{"User", "Terminal", "Host", "Started"})
+			s := env.NewTable([]string{"User", "Terminal", "Host", "Started"})
 			for _, user := range users {
 				vals := []any{
 					*env.NewString(user.User),
@@ -203,7 +234,7 @@ var Builtins_os = map[string]*env.Builtin{
 					*env.NewString(user.Host),
 					*env.NewInteger(int64(user.Started)),
 				}
-				s.AddRow(*env.NewSpreadsheetRow(vals, s))
+				s.AddRow(*env.NewTableRow(vals, s))
 			}
 			return *s
 		},
@@ -240,13 +271,13 @@ var Builtins_os = map[string]*env.Builtin{
 	},
 	"disk-usage?": {
 		Argsn: 0,
-		Doc:   "Get disk usage information as a spreadsheet.",
+		Doc:   "Get disk usage information as a table.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			partitions, err := disk.Partitions(true)
 			if err != nil {
 				return MakeBuiltinError(ps, err.Error(), "disk-usage?")
 			}
-			s := env.NewSpreadsheet([]string{"Filesystem", "Size", "Used", "Available", "Capacity", "iused", "ifree", "%iused", "Mounted on"})
+			s := env.NewTable([]string{"Filesystem", "Size", "Used", "Available", "Capacity", "iused", "ifree", "%iused", "Mounted on"})
 			for _, partition := range partitions {
 				usage, err := disk.Usage(partition.Mountpoint)
 				if err != nil {
@@ -263,7 +294,7 @@ var Builtins_os = map[string]*env.Builtin{
 					*env.NewInteger(int64(usage.InodesUsedPercent)),
 					*env.NewString(usage.Path),
 				}
-				s.AddRow(*env.NewSpreadsheetRow(vals, s))
+				s.AddRow(*env.NewTableRow(vals, s))
 			}
 			return *s
 		},
@@ -286,15 +317,15 @@ var Builtins_os = map[string]*env.Builtin{
 	},
 	"processes?": {
 		Argsn: 0,
-		Doc:   "Get information about all processes as a spreadsheet.",
+		Doc:   "Get information about all processes as a table.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			processes, err := process.Processes()
 			if err != nil {
 				return MakeBuiltinError(ps, err.Error(), "processes?")
 			}
-			s := proccesSpreadsheetBase()
+			s := proccesTableBase()
 			for _, process := range processes {
-				processSpreadsheetAdd(s, process)
+				processTableAdd(s, process)
 			}
 			return *s
 		},
@@ -309,18 +340,93 @@ var Builtins_os = map[string]*env.Builtin{
 				if err != nil {
 					return MakeBuiltinError(ps, err.Error(), "process")
 				}
-				s := proccesSpreadsheetBase()
-				processSpreadsheetAdd(s, process)
+				s := proccesTableBase()
+				processTableAdd(s, process)
 				return s.Rows[0].ToDict()
 			default:
 				return *MakeArgError(ps, 1, []env.Type{env.IntegerType}, "process")
 			}
 		},
 	},
+
+	"lookup-address": {
+		Argsn: 1,
+		Doc:   "Get address of an IP.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch ip := arg0.(type) {
+			case env.String:
+				names, err := net.LookupAddr(ip.Value)
+				if err != nil {
+					return MakeBuiltinError(ps, err.Error(), "ip-lookup")
+				}
+
+				items := make([]env.Object, len(names))
+
+				for i, name := range names {
+					items[i] = *env.NewString(name)
+				}
+				return *env.NewBlock(*env.NewTSeries(items))
+			default:
+				return *MakeArgError(ps, 1, []env.Type{env.StringType}, "ip-lookup")
+			}
+		},
+	},
+
+	"lookup-ip": {
+		Argsn: 1,
+		Doc:   "Get IP of an address.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch ip := arg0.(type) {
+			case env.String:
+				names, err := net.LookupIP(ip.Value)
+				if err != nil {
+					return MakeBuiltinError(ps, err.Error(), "ip-lookup")
+				}
+
+				items := make([]env.Object, len(names))
+
+				for i, name := range names {
+					items[i] = *env.NewString(name.String())
+				}
+				return *env.NewBlock(*env.NewTSeries(items))
+			default:
+				return *MakeArgError(ps, 1, []env.Type{env.StringType}, "ip-lookup")
+			}
+		},
+	},
+
+	"write\\clipboard": {
+		Argsn: 1,
+		Doc:   "Writes value to OS clipboard",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch val := arg0.(type) {
+			case env.String:
+				err := clipboard.WriteAll(val.Value)
+				if err != nil {
+					return MakeBuiltinError(ps, err.Error(), "write\\clipboard")
+				}
+				return arg0
+			default:
+				return *MakeArgError(ps, 1, []env.Type{env.StringType}, "write\\clipboard")
+			}
+		},
+	},
+
+	"read\\clipboard": {
+		Argsn: 0,
+		Doc:   "Reads value from OS clipboard",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			val, err := clipboard.ReadAll()
+			if err != nil {
+				return MakeBuiltinError(ps, err.Error(), "read\\clipboard")
+			}
+			return *env.NewString(val)
+		},
+	},
 }
 
-func proccesSpreadsheetBase() *env.Spreadsheet {
-	return env.NewSpreadsheet([]string{
+func proccesTableBase() *env.Table {
+	return env.NewTable([]string{
 		"User",
 		"PID",
 		"Status",
@@ -338,7 +444,7 @@ func proccesSpreadsheetBase() *env.Spreadsheet {
 	})
 }
 
-func processSpreadsheetAdd(s *env.Spreadsheet, process *process.Process) {
+func processTableAdd(s *env.Table, process *process.Process) {
 	var status env.String
 	stat, err := process.Status()
 	if err == nil {
@@ -407,7 +513,7 @@ func processSpreadsheetAdd(s *env.Spreadsheet, process *process.Process) {
 		cpuTime,
 		maybeString(process.Cmdline),
 	}
-	s.AddRow(*env.NewSpreadsheetRow(vals, s))
+	s.AddRow(*env.NewTableRow(vals, s))
 }
 
 func maybeString(f func() (string, error)) env.Object {

@@ -2,7 +2,6 @@ package env
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -14,12 +13,6 @@ import (
 	Get(word int) (Object, bool)
 	Set(word int, val Object) Object
 } */
-
-// UTIL
-
-func IsPointer(v interface{}) bool {
-	return reflect.TypeOf(v).Kind() == reflect.Ptr
-}
 
 // This is experimental env without map for Functions with up to two variables
 
@@ -65,9 +58,13 @@ func (e RyeCtx) Copy() *RyeCtx {
 	return nc
 }
 
+func (e RyeCtx) GetState() map[int]Object {
+	return e.state
+}
+
 func (e RyeCtx) Print(idxs Idxs) string {
 	var bu strings.Builder
-	bu.WriteString("[Context (" + e.Kind.Print(idxs) + "): ")
+	bu.WriteString("[Context (" + e.Kind.Print(idxs) + ") \"" + e.Doc + "\": ")
 	for k, v := range e.state {
 		bu.WriteString(idxs.GetWord(k) + ": " + v.Inspect(idxs) + " ")
 	}
@@ -181,7 +178,7 @@ func (i RyeCtx) Equal(o Object) bool {
 func (i RyeCtx) Dump(e Idxs) string {
 	var bu strings.Builder
 	bu.WriteString("context {\n")
-	bu.WriteString(fmt.Sprintf("doc \"%s\"\n", i.Doc))
+	//bu.WriteString(fmt.Sprintf("doc \"%s\"\n", i.Doc))
 	bu.WriteString(i.DumpBare(e))
 	bu.WriteString("}")
 	return bu.String()
@@ -254,7 +251,7 @@ func (e *RyeCtx) Get2(word int) (Object, bool, *RyeCtx) {
 
 func (e *RyeCtx) Set(word int, val Object) Object {
 	if _, exists := e.state[word]; exists {
-		return NewError("Can't set already set word, try using modword! FIXME !")
+		return *NewError("Can't set already set word, try using modword! FIXME !")
 	} else {
 		e.state[word] = val
 		return val
@@ -310,6 +307,7 @@ type ProgramState struct {
 	LiveObj      *LiveEnv
 	Dialect      DoDialect
 	Stack        *EyrStack
+	Embedded     bool
 }
 
 type DoDialect int
@@ -339,9 +337,10 @@ func NewProgramState(ser TSeries, idx *Idxs) *ProgramState {
 		"",
 		"",
 		false,
-		NewLiveEnv(),
+		nil, // NewLiveEnv(),
 		Rye2Dialect,
 		NewEyrStack(),
+		false,
 	}
 	return &ps
 }
@@ -369,6 +368,7 @@ func NewProgramStateNEW() *ProgramState {
 		NewLiveEnv(),
 		Rye2Dialect,
 		NewEyrStack(),
+		false,
 	}
 	return &ps
 }

@@ -8,9 +8,13 @@ import (
 
 var Builtins_regexp = map[string]*env.Builtin{
 
+	// Tests:
+	//  equal { regexp "[0-9]" |type? } 'native
+	// Args:
+	// * pattern: regular expression
 	"regexp": {
 		Argsn: 1,
-		Doc:   "Creates a Regular expression object.",
+		Doc:   "Creates a Regular Expression native value.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch s := arg0.(type) {
 			case env.String:
@@ -25,6 +29,12 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//  equal { regexp "[0-9]" |is-match "5" } 1
+	//  equal { regexp "[0-9]" |is-match "a" } 0
+	// Args:
+	// * regexp - native regexp value
+	// * input - value to test for matching
 	"regexp//is-match": {
 		Argsn: 2,
 		Doc:   "Check if string matches the given regular epression.",
@@ -48,6 +58,8 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//  equal { regexp "x([0-9]+)y" |submatch? "x123y" } "123"
 	"regexp//submatch?": {
 		Argsn: 2,
 		Doc:   "Get the first submatch from string given the regular exprepesion.",
@@ -71,6 +83,8 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//  equal { regexp "x([0-9]+)y" |submatches? "x123y x234y" } { "123" }
 	"regexp//submatches?": {
 		Argsn: 2,
 		Doc:   "Get all regexp submatches in a Block.",
@@ -99,6 +113,42 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//  equal { regexp "x([0-9]+)(y+)?" |submatches\all? "x11yy x22" } { { "11" "yy" } { "22" "" } }
+	"regexp//submatches\\all?": {
+		Argsn: 2,
+		Doc:   "Get all regexp submatches in a Block.",
+		Fn: func(env1 *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch val := arg1.(type) {
+			case env.String:
+				switch s := arg0.(type) {
+				case env.Native:
+					res := s.Value.(*regexp.Regexp).FindAllStringSubmatch(val.Value, -1)
+					if len(res) > 0 {
+						blks := make([]env.Object, len(res))
+						for i, mtch := range res {
+							strs := make([]env.Object, len(mtch)-1)
+							for j, row := range mtch {
+								if j > 0 {
+									strs[j-1] = *env.NewString(row)
+								}
+							}
+							blks[i] = *env.NewBlock(*env.NewTSeries(strs))
+						}
+						return *env.NewBlock(*env.NewTSeries(blks))
+					}
+					return MakeBuiltinError(env1, "No results", "submatches?")
+				default:
+					return MakeError(env1, "Arg2 not Native")
+				}
+			default:
+				return MakeError(env1, "Arg1 not String")
+			}
+		},
+	},
+
+	// Tests:
+	//  equal { regexp "[0-9]+" |find-all "x123y x234y" } { "123" "234" }
 	"regexp//find-all": {
 		Argsn: 2,
 		Doc:   "Find all matches and return them in a Block",
@@ -125,6 +175,11 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//	equal { regexp "[0-9]+c+" |match? "aa33bb55cc" } "55cc"
+	// Args:
+	// * regexp value
+	// * input
 	"regexp//match?": {
 		Argsn: 2,
 		Doc:   "Get the regexp match.",
@@ -144,6 +199,8 @@ var Builtins_regexp = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	//  equal { regexp "[0-9]+" |replace-all "x123y x234y" "XXX" } "xXXXy xXXXy"
 	"regexp//replace-all": {
 		Argsn: 3,
 		Doc:   "Replace all mathes in a string given the regexp with another string.",

@@ -15,7 +15,6 @@ import (
 	"github.com/refaktor/rye/evaldo"
 	"github.com/refaktor/rye/loader"
 	"github.com/refaktor/rye/term"
-	"github.com/refaktor/rye/util"
 )
 
 type TagType int
@@ -40,7 +39,7 @@ var PREV_LINES string
 
 var prevResult env.Object
 
-var ml *util.MLState
+var ml *term.MLState
 
 //
 // main function. Dispatches to appropriate mode function
@@ -76,9 +75,9 @@ func main() {
 
 	term.SetSB(sendMessageToJS)
 
-	c := make(chan util.KeyEvent)
+	c := make(chan term.KeyEvent)
 
-	ml = util.NewMicroLiner(c, sendMessageToJS, sendLineToJS)
+	ml = term.NewMicroLiner(c, sendMessageToJS, sendLineToJS)
 
 	js.Global().Set("RyeEvalString", js.FuncOf(RyeEvalString))
 
@@ -88,9 +87,11 @@ func main() {
 
 	js.Global().Set("InitRyeShell", js.FuncOf(InitRyeShell))
 
+	js.Global().Set("SetTerminalSize", js.FuncOf(SetTerminalSize))
+
 	js.Global().Set("SendKeypress", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) > 0 {
-			cc := util.NewKeyEvent(args[0].String(), args[1].Int(), args[2].Bool(), args[3].Bool(), args[4].Bool())
+			cc := term.NewKeyEvent(args[0].String(), args[1].Int(), args[2].Bool(), args[3].Bool(), args[4].Bool())
 			c <- cc
 		}
 		return nil
@@ -114,6 +115,12 @@ func main() {
 		sendMessageToJS(response)
 	} */
 
+}
+
+func SetTerminalSize(this js.Value, args []js.Value) any {
+	term.SetTerminalColumns(args[0].Int())
+	ml.SetColumns(term.GetTerminalColumns())
+	return "Ok"
 }
 
 func InitRyeShell(this js.Value, args []js.Value) any {
@@ -185,7 +192,7 @@ func RyeEvalShellLine(this js.Value, args []js.Value) any {
 		}
 
 		evaldo.EvalBlockInj(ps, prevResult, true)
-		evaldo.MaybeDisplayFailureOrErrorWASM(ps, ps.Idx, sendMessageToJSNL)
+		evaldo.MaybeDisplayFailureOrErrorWASM(ps, ps.Idx, sendMessageToJSNL, "rye shell line wasm")
 
 		prevResult = ps.Res
 
@@ -232,7 +239,7 @@ func RyeEvalString(this js.Value, args []js.Value) any {
 		}
 
 		evaldo.EvalBlock(es)
-		evaldo.MaybeDisplayFailureOrError(es, genv)
+		evaldo.MaybeDisplayFailureOrError(es, genv, "rye eval string wasm")
 		return es.Res.Print(*es.Idx)
 	case env.Error:
 		fmt.Println(val.Message)

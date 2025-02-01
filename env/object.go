@@ -3,6 +3,7 @@ package env
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -39,13 +40,13 @@ const (
 	CPathType          Type = 24
 	XwordType          Type = 25
 	EXwordType         Type = 26
-	SpreadsheetType    Type = 27
+	TableType    Type = 27
 	EmailType          Type = 28
 	KindType           Type = 29
 	KindwordType       Type = 30
 	ConverterType      Type = 31
 	TimeType           Type = 32
-	SpreadsheetRowType Type = 33
+	TableRowType Type = 33
 	DecimalType        Type = 34
 	VectorType         Type = 35
 	OpCPathType        Type = 36
@@ -67,6 +68,17 @@ type Object interface {
 	Inspect(e Idxs) string
 	// Dump returns a string representation of the Object, intended for serialization.
 	Dump(e Idxs) string
+}
+
+func NewBoolean(val bool) *Integer {
+	var ret int64
+	if val {
+		ret = 1
+	} else {
+		ret = 0
+	}
+	nat := Integer{ret}
+	return &nat
 }
 
 //
@@ -150,14 +162,19 @@ func (i Decimal) GetKind() int {
 
 func (i Decimal) Equal(o Object) bool {
 	if i.Type() != o.Type() {
-		fmt.Println(i.Type())
-		fmt.Println(o.Type())
-		fmt.Println("TYPES")
+		// fmt.Println(i.Type())
+		// fmt.Println(o.Type())
+		// fmt.Println("TYPES")
 		return false
 	}
-	fmt.Println(i.Value)
-	fmt.Println(o.(Decimal).Value)
-	return i.Value == o.(Decimal).Value
+	// fmt.Println(i.Value)
+	// fmt.Println(o.(Decimal).Value)
+	const epsilon = 0.0000000000001 // math.SmallestNonzeroFloat64
+	if math.Abs(i.Value-o.(Decimal).Value) <= (epsilon) {
+		return true
+	} else {
+		return false
+	}
 }
 
 func (i Decimal) Dump(e Idxs) string {
@@ -285,9 +302,15 @@ func NewFileUri(index *Idxs, path string) *Uri {
 
 func NewUri(index *Idxs, scheme Word, path string) *Uri {
 	scheme2 := strings.Split(path, "://")
-	kindstr := strings.Split(path, "://")[0] + "-schema" // TODO -- this is just temporary .. so we test it further, make proper once at that level
+	kindstr := index.GetWord(scheme.Index) + "-schema" // TODO -- this is just temporary .. so we test it further, make proper once at that level
 	idx := index.IndexWord(kindstr)
-	nat := Uri{scheme, scheme2[1], Word{idx}}
+	var path2 string
+	if len(scheme2) > 1 { // TODO --- look at all this code and improve, this is just BAD
+		path2 = scheme2[1]
+	} else {
+		path2 = path
+	}
+	nat := Uri{scheme, path2, Word{idx}}
 	//	nat := Uri{Word{idxSch}, scheme2[1], Word{idxKind}}
 	return &nat
 }
@@ -466,7 +489,14 @@ func (i Block) Equal(o Object) bool {
 
 func (i Block) Dump(e Idxs) string {
 	var bu strings.Builder
-	bu.WriteString("{ ")
+	switch i.Mode {
+	case 0:
+		bu.WriteString("{ ")
+	case 1:
+		bu.WriteString("[ ")
+	case 2:
+		bu.WriteString("( ")
+	}
 	for _, obj := range i.Series.GetAll() {
 		if obj != nil {
 			bu.WriteString(obj.Dump(e))
@@ -475,7 +505,14 @@ func (i Block) Dump(e Idxs) string {
 			bu.WriteString("'nil ")
 		}
 	}
-	bu.WriteString("}")
+	switch i.Mode {
+	case 0:
+		bu.WriteString("}")
+	case 1:
+		bu.WriteString("]")
+	case 2:
+		bu.WriteString(")")
+	}
 	return bu.String()
 }
 
@@ -752,7 +789,11 @@ func (i Opword) Equal(o Object) bool {
 }
 
 func (i Opword) Dump(e Idxs) string {
-	return "." + e.GetWord(i.Index)
+	var ssecond string
+	if i.Force == 1 {
+		ssecond = "*"
+	}
+	return "." + e.GetWord(i.Index) + ssecond
 }
 
 //
@@ -803,7 +844,11 @@ func (i Pipeword) Equal(o Object) bool {
 }
 
 func (i Pipeword) Dump(e Idxs) string {
-	return "|" + e.GetWord(i.Index)
+	var ssecond string
+	if i.Force == 1 {
+		ssecond = "*"
+	}
+	return "|" + e.GetWord(i.Index) + ssecond
 }
 
 //
@@ -1736,6 +1781,42 @@ func NewDict(data map[string]any) *Dict {
 	return &Dict{data, Word{0}}
 }
 
+func MergeTwoDicts(base Dict, toAdd Dict) Dict {
+	data := make(map[string]any)
+	for k, v := range base.Data {
+		data[k] = v
+	}
+	for k, v := range toAdd.Data {
+		data[k] = v
+	}
+	return Dict{data, Word{0}}
+}
+
+func MergeDictAndBlock(base Dict, updatesBlock TSeries, idx *Idxs) Dict {
+	data := make(map[string]any)
+	for k, v := range base.Data {
+		data[k] = v
+	}
+
+	for updatesBlock.Pos() < updatesBlock.Len() {
+		key := updatesBlock.Pop()
+		val := updatesBlock.Pop()
+		// v001 -- only process the typical case of string val
+		switch k := key.(type) {
+		case String:
+			data[k.Value] = val
+		case Tagword:
+			data[idx.GetWord(k.Index)] = val
+		case Word:
+			data[idx.GetWord(k.Index)] = val
+		case Setword:
+			data[idx.GetWord(k.Index)] = val
+		}
+	}
+	return Dict{data, Word{0}}
+
+}
+
 func NewDictFromSeries(block TSeries, idx *Idxs) Dict {
 	data := make(map[string]any)
 	for block.Pos() < block.Len() {
@@ -1854,7 +1935,7 @@ func NewList(data []any) *List {
 	return &List{data, Word{0}}
 }
 
-func RyeToRaw(res Object) any { // TODO -- MOVE TO UTIL ... provide reverse named symmetrically
+func RyeToRaw(res Object, idx *Idxs) any { // TODO -- MOVE TO UTIL ... provide reverse named symmetrically
 	// fmt.Printf("Type: %T", res)
 	switch v := res.(type) {
 	case nil:
@@ -1875,6 +1956,8 @@ func RyeToRaw(res Object) any { // TODO -- MOVE TO UTIL ... provide reverse name
 		return v
 	case *List:
 		return *v
+	case Uri: // Open question: what should list do with values that don't have raw equivalents
+		return idx.GetWord(v.Scheme.Index) + v.Path
 	default:
 		return "not handeled 2"
 		// TODO-FIXME

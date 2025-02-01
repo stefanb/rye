@@ -5,20 +5,23 @@ package evaldo
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/eiannone/keyboard"
+	// "github.com/eiannone/keyboard"
+	"github.com/cszczepaniak/keyboard"
 
 	"github.com/refaktor/rye/env"
 	"github.com/refaktor/rye/loader"
+	"github.com/refaktor/rye/term"
 	"github.com/refaktor/rye/util"
 )
 
 var (
-	history_fn = filepath.Join(os.TempDir(), ".rye_repl_history")
+	history_fn = filepath.Join(os.TempDir(), ".rye_console_history")
 	names      = []string{"add", "join", "return", "fn", "fail", "if"}
 )
 
@@ -155,7 +158,7 @@ func MoveCursorBackward(bias int) {
 
 type Repl struct {
 	ps *env.ProgramState
-	ml *util.MLState
+	ml *term.MLState
 
 	dialect     string
 	showResults bool
@@ -190,6 +193,8 @@ func (r *Repl) evalLine(es *env.ProgramState, code string) string {
 		es.LiveObj.PsMutex.Unlock()
 	}
 
+	// if last character is space is turns to multiline more and doesn't eval yet, but we
+	// want to move this to microliner, so we can edit multiple lines there
 	multiline := len(code) > 1 && code[len(code)-1:] == " "
 
 	comment := regexp.MustCompile(`\s*;`)
@@ -236,15 +241,19 @@ func (r *Repl) evalLine(es *env.ProgramState, code string) string {
 			fmt.Println("Unknown dialect: " + r.dialect)
 		}
 
-		MaybeDisplayFailureOrError(es, genv)
+		MaybeDisplayFailureOrError(es, genv, "repl / eval Line")
 
 		if !es.ErrorFlag && es.Res != nil {
 			r.prevResult = es.Res
+			p := ""
+			if env.IsPointer(es.Res) {
+				p = "Ref"
+			}
 			resultStr := es.Res.Inspect(*genv)
 			if r.dialect == "eyr" {
 				resultStr = strings.Replace(resultStr, "Block:", "Stack:", 1) // TODO --- temp / hackish way ... make stack display itself or another approach
 			}
-			output = fmt.Sprintf("\033[38;5;37m" + resultStr + "\x1b[0m")
+			output = fmt.Sprintf("\033[38;5;37m" + p + resultStr + "\x1b[0m")
 		}
 
 		es.ReturnFlag = false
@@ -260,7 +269,9 @@ func (r *Repl) evalLine(es *env.ProgramState, code string) string {
 
 // constructKeyEvent maps a rune and keyboard.Key to a util.KeyEvent, which uses javascript key event codes
 // only keys used in microliner are mapped
-func constructKeyEvent(r rune, k keyboard.Key) util.KeyEvent {
+func constructKeyEvent(r rune, k keyboard.Key) term.KeyEvent {
+	// fmt.Println(r)
+	// fmt.Println(k)
 	var ctrl bool
 	alt := k == keyboard.KeyEsc
 	var code int
@@ -268,6 +279,9 @@ func constructKeyEvent(r rune, k keyboard.Key) util.KeyEvent {
 	switch k {
 	case keyboard.KeyCtrlA:
 		ch = "a"
+		ctrl = true
+	case keyboard.KeyCtrlS:
+		ch = "s"
 		ctrl = true
 	case keyboard.KeyCtrlC:
 		ch = "c"
@@ -305,6 +319,8 @@ func constructKeyEvent(r rune, k keyboard.Key) util.KeyEvent {
 
 	case keyboard.KeyEnter:
 		code = 13
+	case keyboard.KeyTab:
+		code = 9
 	case keyboard.KeyBackspace, keyboard.KeyBackspace2:
 		code = 8
 	case keyboard.KeyDelete:
@@ -324,8 +340,15 @@ func constructKeyEvent(r rune, k keyboard.Key) util.KeyEvent {
 
 	case keyboard.KeySpace:
 		ch = " "
+		code = 20
 	}
-	return util.NewKeyEvent(ch, code, ctrl, alt, false)
+	return term.NewKeyEvent(ch, code, ctrl, alt, false)
+}
+
+func isCursorAtBottom() bool { // TODO --- doesn't seem to work and probably don't need it ... test and remove if doesn't work
+	// Implement a more robust check for the cursor's position if needed
+	// For a simple approximation, you can check if the terminal height matches the current cursor position
+	return true || os.Getenv("TERM_LINES") != "" && os.Getenv("TERM_LINES") == os.Getenv("TERM_ROW")
 }
 
 func DoRyeRepl(es *env.ProgramState, dialect string, showResults bool) { // here because of some odd options we were experimentally adding
@@ -335,29 +358,125 @@ func DoRyeRepl(es *env.ProgramState, dialect string, showResults bool) { // here
 		return
 	}
 
-	c := make(chan util.KeyEvent)
+	c := make(chan term.KeyEvent)
 	r := Repl{
 		ps:          es,
 		dialect:     dialect,
 		showResults: showResults,
 		stack:       env.NewEyrStack(),
 	}
-	ml := util.NewMicroLiner(c, r.recieveMessage, r.recieveLine)
+	ml := term.NewMicroLiner(c, r.recieveMessage, r.recieveLine)
 	r.ml = ml
 
+	if f, err := os.Open(history_fn); err == nil {
+		if _, err := ml.ReadHistory(f); err != nil {
+			log.Print("Error reading history file: ", err)
+		}
+		fmt.Println("Read history")
+		f.Close()
+	}
+
+	ml.SetCompleter(func(line string, mode int) (c []string) {
+		// #IMPROV #IDEA words defined in current context should be bold
+		// #IMPROV #Q how would we cycle just through words in current context?
+		// #TODO don't display more than N words
+		// #TODO make current word bold
+
+		// # TRICK: we don't have the cursor position, but the caller code handles that already so we can suggest in the 	middle
+		suggestions := make([]string, 0)
+		var wordpart string
+		spacePos := strings.LastIndex(line, " ")
+		var prefix string
+		if spacePos < 0 {
+			// fmt.Println("*")
+			wordpart = line
+			prefix = ""
+		} else {
+			wordpart = strings.TrimSpace(line[spacePos:])
+			fmt.Print("=(")
+			fmt.Print(wordpart)
+			fmt.Print(")=")
+			prefix = line[0:spacePos] + " "
+			if wordpart == "" { // we are probably 1 space after last word
+				fmt.Println("+")
+				return
+			}
+		}
+
+		fmt.Print("=[")
+		fmt.Print(wordpart)
+		fmt.Print("]=")
+		switch mode {
+		case 0:
+			for i := 0; i < es.Idx.GetWordCount(); i++ {
+				// fmt.Print(es.Idx.GetWord(i))
+				if strings.HasPrefix(es.Idx.GetWord(i), strings.ToLower(wordpart)) {
+					c = append(c, prefix+es.Idx.GetWord(i))
+					suggestions = append(suggestions, es.Idx.GetWord(i))
+				} else if strings.HasPrefix("."+es.Idx.GetWord(i), strings.ToLower(wordpart)) {
+					c = append(c, prefix+"."+es.Idx.GetWord(i))
+					suggestions = append(suggestions, es.Idx.GetWord(i))
+				} else if strings.HasPrefix("|"+es.Idx.GetWord(i), strings.ToLower(wordpart)) {
+					c = append(c, prefix+"|"+es.Idx.GetWord(i))
+					suggestions = append(suggestions, es.Idx.GetWord(i))
+				}
+			}
+		case 1:
+			for key := range es.Ctx.GetState() {
+				// fmt.Print(es.Idx.GetWord(i))
+				if strings.HasPrefix(es.Idx.GetWord(key), strings.ToLower(wordpart)) {
+					c = append(c, prefix+es.Idx.GetWord(key))
+					suggestions = append(suggestions, es.Idx.GetWord(key))
+				} else if strings.HasPrefix("."+es.Idx.GetWord(key), strings.ToLower(wordpart)) {
+					c = append(c, prefix+"."+es.Idx.GetWord(key))
+					suggestions = append(suggestions, es.Idx.GetWord(key))
+				} else if strings.HasPrefix("|"+es.Idx.GetWord(key), strings.ToLower(wordpart)) {
+					c = append(c, prefix+"|"+es.Idx.GetWord(key))
+					suggestions = append(suggestions, es.Idx.GetWord(key))
+				}
+			}
+		}
+
+		// TODO -- make this sremlines and use local term functions
+		if isCursorAtBottom() {
+			// If at the bottom, print a new line to create a space
+			fmt.Println()
+		}
+
+		// Move the cursor one line down
+		// term.CurDown(1) //"\033[B")
+
+		// Delete the line
+		term.ClearLine() //"\033[2K")
+
+		// Print something
+		term.ColorMagenta()
+		fmt.Print(suggestions)
+		term.CloseProps() //	fmt.Print("This is the new line.")
+
+		// Move the cursor back to the previous line
+		term.CurUp(1) //"\033[A")
+
+		return
+	})
+
 	ctx, cancel := context.WithCancel(context.Background())
+
+	defer func() {
+		fmt.Println("Closing keyboard ...")
+		keyboard.Close()
+	}()
 
 	defer cancel()
 
 	// ctx := context.Background()
 	// defer os.Exit(0)
 	// defer ctx.Done()
-	defer keyboard.Close()
 	go func(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				// fmt.Println("Done")
+				fmt.Println("Done Signaled")
 				return
 			default:
 				// fmt.Println("Select default")
@@ -366,8 +485,8 @@ func DoRyeRepl(es *env.ProgramState, dialect string, showResults bool) { // here
 					fmt.Println(keyErr)
 					break
 				}
-				if k == keyboard.KeyCtrlC {
-					// fmt.Println("Ctrl C 1")
+				if k == keyboard.KeyCtrlC && false {
+					fmt.Println("Keyboard Ctrl+C in REPL detected. Calcel called.")
 					cancel()
 					err1 := util.KillProcess(os.Getpid())
 					// err1 := syscall.Kill(os.Getpid(), syscall.SIGINT)
@@ -385,22 +504,26 @@ func DoRyeRepl(es *env.ProgramState, dialect string, showResults bool) { // here
 		}
 	}(ctx)
 
+	defer func() {
+		// TODO -- make it save hist
+		if f, err := os.Create(history_fn); err != nil {
+			fmt.Println("Error writing history file: ", err)
+		} else {
+			if _, err := ml.WriteHistory(f); err != nil {
+				fmt.Println("Error writing history file: ", err)
+			}
+			f.Close()
+		}
+		fmt.Println("Wrote history ...")
+	}()
+
 	// fmt.Println("MICRO")
 	_, err = ml.MicroPrompt("x> ", "", 0, ctx)
 	if err != nil {
 		fmt.Println(err)
 	}
-	// fmt.Println("END")
+	fmt.Println("End of Function in REPL ...")
 
-	// TODO -- make it save history
-	/* if f, err := os.Create(history_fn); err != nil {
-		log.Print("Error writing history file: ", err)
-	} else {
-		if _, err := line.WriteHistory(f); err != nil {
-			log.Print("Error writing history file: ", err)
-		}
-		f.Close()
-	}*/
 }
 
 /*  THIS WAS DISABLED TEMP FOR WASM MODE .. 20250116 func DoGeneralInput(es *env.ProgramState, prompt string) {

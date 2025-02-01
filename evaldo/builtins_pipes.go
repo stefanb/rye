@@ -4,6 +4,7 @@
 package evaldo
 
 import (
+	"errors"
 	"regexp"
 
 	"github.com/refaktor/rye/env"
@@ -728,6 +729,243 @@ var Builtins_pipes = map[string]*env.Builtin{
 				}
 			default:
 				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-join")
+			}
+		},
+	},
+
+	"exit-status": {
+		Argsn: 1,
+		Doc:   "Returns the integer exit status of a previous command. This will be zero unless the pipe's error status is set and the error matches the pattern.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					status := pipe.ExitStatus()
+					return *env.NewInteger(int64(status))
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-exit-status")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-exit-status")
+			}
+		},
+	},
+
+	"args": {
+		Argsn: 0,
+		Doc:   "Creates a pipe containing the program's command-line arguments from os.Args, excluding the program name, one per line.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			newPipe := script.Args()
+			return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+		},
+	},
+
+	"concat": {
+		Argsn: 1,
+		Doc:   "concat reads paths from the pipe, one per line, and produces the contents of all the corresponding files in sequence. If there are any errors (for example, non-existent files), these will be ignored, execution will continue, and the pipe's error status will not be set.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					newPipe := pipe.Concat()
+					return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-concat")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-concat")
+			}
+		},
+	},
+
+	"close": {
+		Argsn: 1,
+		Doc:   "Closes the pipe's associated reader.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					closeErr := pipe.Close()
+					if closeErr != nil {
+						return *env.NewError("Error closing pipe")
+					}
+					return *env.NewInteger(0)
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-close")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-close")
+			}
+		},
+	},
+
+	"get": {
+		Argsn: 2,
+		Doc:   "Get makes an HTTP GET request to url, sending the contents of the pipe as the request body, and produces the server's response.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					switch s := arg1.(type) {
+					case env.String:
+						newPipe := pipe.Get(s.Value)
+						return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+					default:
+						return MakeArgError(ps, 2, []env.Type{env.StringType}, "p-get")
+					}
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-get")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-get")
+			}
+		},
+	},
+
+	"post": {
+		Argsn: 2,
+		Doc:   "Post makes an HTTP POST request to url, using the contents of the pipe as the request body, and produces the server's response.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					switch s := arg1.(type) {
+					case env.String:
+						newPipe := pipe.Post(s.Value)
+						return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+					default:
+						return MakeArgError(ps, 2, []env.Type{env.StringType}, "p-post")
+					}
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-post")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-post")
+			}
+		},
+	},
+
+	"new": {
+		Argsn: 0,
+		Doc:   "new creates a new pipe with an empty reader.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			newPipe := script.NewPipe()
+			return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+		},
+	},
+
+	"wait": {
+		Argsn: 1,
+		Doc:   "Wait reads the pipe to completion and returns any error present on the pipe, or 0 otherwise..",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					waitErr := pipe.Wait()
+					if waitErr != nil {
+						return *env.NewError("Error in pipe during waiting")
+					}
+					return *env.NewInteger(0)
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-wait")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-wait")
+			}
+		},
+	},
+
+	"append-to-file": {
+		Argsn: 2,
+		Doc:   "append-to-file appends the contents of the pipe to the file path, creating it if necessary, and returns the number of bytes successfully written, or an error.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					switch s := arg1.(type) {
+					case env.String:
+						writtenBytes, err := pipe.AppendFile(s.Value)
+						if err != nil {
+							return *env.NewError("Error while appending data to files.")
+						}
+						return *env.NewInteger(writtenBytes)
+					case env.Uri:
+						writtenBytes, err := pipe.AppendFile(s.Path)
+						if err != nil {
+							return *env.NewError("Error while appending data to rey-file.")
+						}
+						return *env.NewInteger(writtenBytes)
+					default:
+						return MakeArgError(ps, 2, []env.Type{env.StringType, env.UriType}, "p-append-to-file")
+					}
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-append-to-file")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-append-to-file")
+			}
+		},
+	},
+
+	"stdin": {
+		Argsn: 0,
+		Doc:   "Stdin creates a pipe that reads from os.Stdin.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			newPipe := script.Stdin()
+			return *env.NewNative(ps.Idx, newPipe, "script-pipe")
+		},
+	},
+
+	"error": {
+		Argsn: 1,
+		Doc:   "error - returns any error present on the pipe, or 0 otherwise.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					waitErr := pipe.Error()
+					if waitErr != nil {
+						return *env.NewError("Error in pipe: " + waitErr.Error())
+					}
+					return *env.NewInteger(0)
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-error")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-error")
+			}
+		},
+	},
+
+	"set-error": {
+		Argsn: 2,
+		Doc:   "set-error sets the error err on the pipe and return it.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch p := arg0.(type) {
+			case env.Native:
+				switch pipe := p.Value.(type) {
+				case *script.Pipe:
+					switch errStr := arg1.(type) {
+					case env.String:
+						err := errors.New(errStr.Value)
+						pipe.SetError(err)
+						return *env.NewNative(ps.Idx, pipe, "script-pipe")
+					default:
+						return MakeArgError(ps, 2, []env.Type{env.StringType}, "p-set-error")
+					}
+				default:
+					return MakeNativeArgError(ps, 1, []string{"script-pipe"}, "p-set-error")
+				}
+			default:
+				return MakeArgError(ps, 1, []env.Type{env.NativeType}, "p-set-error")
 			}
 		},
 	},

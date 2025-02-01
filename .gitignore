@@ -14,6 +14,7 @@ data.txt
 .otp-data
 *.data
 *.wasm
+.DS_Store
 
 # Test binary, built with `go test -c`
 *.test
@@ -43,11 +44,10 @@ dist/
 tests/*.html
 shell_*.rye
 console_*.rye
+console_*.rye.enc
 
-<<<<<<< HEAD
 buildtemp/main.rye
 *.bson
+cmd/parse_builtins/parse_builtinscmd/rbit/rbit
 
-=======
-buildtemp/main.rye
->>>>>>> 48009d9729854bd7bbbc0a943f839fc579a2943b
+cmd/rbit/rbit

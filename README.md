@@ -94,7 +94,7 @@ range 1 10 |map { .fac } |print\csv
 
 kind: "admin"
 open sqlite://data.db |query { select * from user where kind = ?kind }
-; returns: Spreadsheet of admins
+; returns: Table of admins
 
 read %name.txt |fix { "Anonymous" } |post* https://example.com/postname 'text
 ; makes HTTP post of the name read from a file, or "Anonymous" if file failed to be read
@@ -117,7 +117,7 @@ These pages are littered with examples. You can find them on this **README** pag
 
 Rye's focus is also interactive use. Check out these asciinema demos: 
 
-  * **[Spreadsheet and CSV demo](https://asciinema.org/a/647708)** - new
+  * **[Table and CSV demo](https://asciinema.org/a/647708)** - new
   * [Exploring JSON](https://asciinema.org/a/615327)
   * [Testing vector functions](https://asciinema.org/a/575970)
 
@@ -160,15 +160,15 @@ The author of Factor once said that at the end *it's not about the language, but
 
 legend: ⭐ priority , 🧪 tests
 
-## External extension: rye-fyne - a GUI toolkit
+## External extensions
 
-Fyne is a cross platform pure **Go** GUI toolkit that we're integrating into Rye. A lot of widgets already work but it's not finished yet.
+Fyne is a cross platform pure **Go** GUI toolkit that we integrated into Rye. Gio is immediate mode GUI library for Go, and Ebitengine is a 2D game endgine for Go. 
 
 ![Fyne Feedback example](https://ryelang.org/rye-fyne-2.png)
 
-* **[Rye-fyne repository](https://github.com/refaktor/rye-fyne)**
-* ![Rye-fyne demo video](https://youtu.be/L4gPrXBI8UY?si=4QIDws9c3ub-5reY)
-* [Fyne website](https://fyne.io)
+* **[Rye-Fyne repository](https://github.com/refaktor/rye-fyne)**
+* **[Rye-Gio repository](https://github.com/refaktor/rye-gio)**
+* **[Rye-Ebitengine repository](https://github.com/refaktor/rye-ebitengine)**
     
 ## Follow development
 
@@ -190,7 +190,7 @@ Rye is developed and should work on Linux and Mac and Windows. We also have a Do
 
 ### Binaries
 
-You can find precompiled Binaries for **Linux** and **macOS** under [Releases](https://github.com/refaktor/rye/releases).
+You can find precompiled Binaries for **Linux**, **macOS**, **Windows** and **Wasm** under [Releases](https://github.com/refaktor/rye/releases).
 
 Docker images are published under [Packages](https://github.com/refaktor/rye/pkgs/container/rye).
 
@@ -306,7 +306,8 @@ Rye has Syntax highlighting for Emacs and VS Code. For VS Code just search for *
 
 ## Rye related projects
 
-  * [Rye-fyne](https://github.com/refaktor/rye-fyne) - external binding for Fyne GUI toolkit (wip)
+  * [Rye-fyne](https://github.com/refaktor/rye-fyne) - external binding for Fyne GUI toolkit
+  * [Rye-gio](https://github.com/refaktor/rye-gio) - external binding for Gioui GUI toolkit (wip)
   * [Rye-ebitengine](https://github.com/refaktor/rye-ebitengine) - external binding for Ebitengine game engine (wip)
   * [ryegen](https://github.com/refaktor/ryegen) - Rye binging generation toolkit (wip)
 
@@ -319,13 +320,11 @@ Rye has Syntax highlighting for Emacs and VS Code. For VS Code just search for *
   [Red](https://red-lang.org) - Another language inspired by Rebol from well known Rebol developer  DocKimbel and his colleagues. A concrete endeavor, with its low level language, compiler, GUI, ...
   
   [Oldes' Rebol 3](https://oldes.github.io/Rebol3/) - Rebol3 fork maintained by Oldes (from Amanita Design), tries to resolve issues without unnecessarily changing the language itself.
+
+  [Ren-c](https://github.com/metaeducation/ren-c) - Rebol 3 fork maintained by HostileFork, more liberal / experimental with changes to the language.
   
   [Arturo](https://arturo-lang.io/) - Another unique language that builds on Rebol's core ideas.
 
-  [Pipefish](https://github.com/tim-hardcastle/Charm) - Not related to Rebol, but an interesting Go based language with some similar runtime ideas and challenges.
-  
-  [Ren-c](https://github.com/metaeducation/ren-c) - Rebol 3 fork maintained by HostileFork, more liberal with changes to the language. 
-  
  ## Questions, contact
   
 You can post an **[Issue](https://github.com/refaktor/rye/issues)** visit github **[Discussions](https://github.com/refaktor/rye/discussions)** or contact me through <a href="mailto:janko .itm+rye[ ]gmail .com">gmail</a> or <a href="https://twitter.com/refaktor">twitter</a>.</p>

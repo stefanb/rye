@@ -1,0 +1,13 @@
+section "table ref"
+"Functions that mutate refed tables"
+{
+
+ 	group "ref" "" 
+    { { block } }
+    {
+		equal {
+			table { "a" "b" } { 1 10 2 20 3 30 } |is-ref
+		} false
+	}
+}
+
