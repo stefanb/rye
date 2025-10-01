@@ -1,6 +1,6 @@
 module github.com/refaktor/rye
 
-go 1.24rc2
+go 1.24.0
 
 retract v0.0.11 // Published accidentally with a bug
 
@@ -57,9 +57,9 @@ require (
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/crypto v0.40.0
 	golang.org/x/net v0.42.0
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 	golang.org/x/term v0.33.0
-	golang.org/x/text v0.27.0
+	golang.org/x/text v0.29.0
 	software.sslmate.com/src/go-pkcs12 v0.6.0
 )
 
