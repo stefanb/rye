@@ -9,7 +9,7 @@ retract v0.0.11 // Published accidentally with a bug
 // replace github.com/refaktor/go-peg => ../go-peg
 
 require (
-	filippo.io/age v1.2.1
+	filippo.io/age v1.3.1
 	github.com/BrianLeishman/go-imap v0.1.19
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/PuerkitoBio/goquery v1.11.0
@@ -30,6 +30,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/gliderlabs/ssh v0.3.8
+	github.com/go-echarts/go-echarts/v2 v2.6.7
 	github.com/go-git/go-git/v6 v6.0.0-20250707060505-4ae913c9492e
 	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
 	github.com/go-sql-driver/mysql v1.9.3
@@ -69,6 +70,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.4.5 // indirect
@@ -90,7 +92,6 @@ require (
 	github.com/frankban/quicktest v1.14.6 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/go-echarts/go-echarts/v2 v2.6.7 // indirect
 	github.com/go-git/gcfg/v2 v2.0.2 // indirect
 	github.com/go-git/go-billy/v6 v6.0.0-20250627091229-31e2a16eef30 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -142,15 +143,14 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/tools v0.39.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	kernel.org/pub/linux/libs/security/libcap/psx v1.2.70 // indirect
 )
 
 require (
-	c2sp.org/CCTV/age v0.0.0-20250126162742-ac53b9fb362b // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
