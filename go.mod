@@ -54,7 +54,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/thomasberger/parsemail v1.2.7
 	github.com/xuri/excelize/v2 v2.10.0
-	github.com/yuin/goldmark v1.7.13
+	github.com/yuin/goldmark v1.7.16
 	go.mongodb.org/mongo-driver v1.17.6
 	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.48.0
