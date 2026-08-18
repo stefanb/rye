@@ -81,6 +81,8 @@ func Rye0_EvalExpression_DispatchType(ps *env.ProgramState) *env.ProgramState {
 		return Rye0_EvalWord(ps, object.(env.Word), nil, false, false)
 	case env.CPathType:
 		return Rye0_EvalWord(ps, object, nil, false, false)
+	case env.DataPathType:
+		return Rye0_EvalDataPath(ps, object.(env.DataPath))
 	case env.FunctionType:
 		fn := object.(env.Function)
 		return Rye0_CallFunction_Optimized(fn, ps, nil, false, nil)
@@ -379,6 +381,48 @@ func Rye0_EvalGetword(ps *env.ProgramState, word env.Getword, leftVal env.Object
 		setError(ps, "Word not found: "+word.Print(*ps.Idx))
 		return ps
 	}
+}
+
+// Rye0_EvalDataPath evaluates a data path value (word.0."key".word).
+// The first segment is the subject word; the remaining segments are literal
+// accessors used to retrieve nested values from blocks, lists, dicts,
+// contexts, tables, etc.
+func Rye0_EvalDataPath(ps *env.ProgramState, dp env.DataPath) *env.ProgramState {
+	if len(dp.Path) == 0 {
+		setError(ps, "Empty data path.")
+		return ps
+	}
+
+	subject, ok := dp.Path[0].(env.Word)
+	if !ok {
+		setError(ps, "Data path subject must be a word.")
+		return ps
+	}
+
+	object, found := ps.Ctx.Get(subject.Index)
+	if !found {
+		setError(ps, "Word not found: "+ps.Idx.GetWord(subject.Index))
+		return ps
+	}
+
+	current := object
+	for _, accessor := range dp.Path[1:] {
+		current = getFrom(ps, current, accessor, false)
+		if ps.FailureFlag {
+			ps.FailureFlag = false
+			ps.ErrorFlag = true
+			if err, isErr := current.(env.Error); isErr {
+				err.CodeBlock = ps.Ser
+				ps.Res = err
+			} else {
+				ps.Res = current
+			}
+			return ps
+		}
+	}
+
+	ps.Res = current
+	return ps
 }
 
 // Rye0_EvalObject evaluates a Rye object.

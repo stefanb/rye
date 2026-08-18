@@ -32,6 +32,52 @@ func processHexEscapesNoPeg(s string) string {
 	return result.String()
 }
 
+// unescapeStringContent processes escape sequences in the inner content of a
+// string literal (without the surrounding quotes).
+// IMPORTANT: \\ and \" must be processed FIRST so that escaped backslashes
+// and quotes don't get consumed by the other escape sequence replacements.
+func unescapeStringContent(str string) string {
+	str = strings.Replace(str, "\\\\", "\\", -1)
+	str = strings.Replace(str, "\\\"", "\"", -1)
+	str = strings.Replace(str, "\\n", "\n", -1)
+	str = strings.Replace(str, "\\r", "\r", -1)
+	str = strings.Replace(str, "\\t", "\t", -1)
+	str = strings.Replace(str, "\\e", "\x1b", -1)
+	str = processHexEscapesNoPeg(str) // Handle \xHH hex escapes
+	return str
+}
+
+// splitDataPathValue splits a data-path token value into its segments on '.',
+// but does not split inside quoted string segments.
+func splitDataPathValue(value string) []string {
+	var parts []string
+	start := 0
+	var quote byte
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if quote != 0 {
+			if c == '\\' {
+				i++ // skip escaped character
+				continue
+			}
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		if c == '"' || c == '`' {
+			quote = c
+			continue
+		}
+		if c == '.' {
+			parts = append(parts, value[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, value[start:])
+	return parts
+}
+
 // Token types for the non-PEG parser
 const (
 	NPEG_TOKEN_NONE = iota
@@ -60,6 +106,7 @@ const (
 	NPEG_TOKEN_OPCPATH
 	NPEG_TOKEN_PIPECPATH
 	NPEG_TOKEN_GETCPATH
+	NPEG_TOKEN_DATAPATH
 	NPEG_TOKEN_BLOCK_START
 	NPEG_TOKEN_BLOCK_END
 	NPEG_TOKEN_BBLOCK_START
@@ -635,6 +682,11 @@ func (l *Lexer) NextToken() NoPEGToken {
 				return l.makeToken(NPEG_TOKEN_CPATH, l.input[l.tokenStart:l.pos])
 			}
 
+			// Check if it's a data path (word.seg.seg... e.g. person.0."age")
+			if l.ch == '.' && isDataPathSegmentStart(l.peekChar()) {
+				return l.readDataPath()
+			}
+
 			return word
 		}
 
@@ -657,8 +709,11 @@ func isDigit(ch byte) bool {
 }
 
 // isWordCharacter checks if a character can be part of a word
+// Note: '.' is intentionally excluded. It is the data-path separator
+// (word.0."key") and the dotword prefix (.word), so it cannot appear
+// inside regular words.
 func isWordCharacter(ch byte) bool {
-	return isLetter(ch) || isDigit(ch) || ch == '-' || ch == '+' || ch == '.' ||
+	return isLetter(ch) || isDigit(ch) || ch == '-' || ch == '+' ||
 		ch == '!' || ch == '*' || ch == '%' || ch == '>' || ch == '<' || ch == '\\' || ch == '?' || ch == '=' || ch == '_' ||
 		ch == '(' || ch == ')'
 }
@@ -814,7 +869,8 @@ func (l *Lexer) readWord() NoPEGToken {
 
 	// Ensure the word is followed by a token delimiter or a valid word terminator.
 	// e.g. word{ word} word[ word] are all invalid - missing space before delimiter.
-	if !isTokenDelimiter(l.ch) && l.ch != ':' && l.ch != '@' && l.ch != '/' {
+	// '.' is a valid terminator here: the caller detects data-paths (word.seg.seg).
+	if !isTokenDelimiter(l.ch) && l.ch != ':' && l.ch != '@' && l.ch != '/' && l.ch != '.' {
 		invalidChar := l.ch
 		tokenValue := l.input[l.tokenStart:l.pos]
 		errMsg := fmt.Sprintf("Missing space after word '%s'. Found '%c' immediately after. Words must be followed by whitespace.", tokenValue, invalidChar)
@@ -822,6 +878,95 @@ func (l *Lexer) readWord() NoPEGToken {
 	}
 
 	return l.makeToken(NPEG_TOKEN_WORD, l.input[l.tokenStart:l.pos])
+}
+
+// isDataPathSegmentStart checks if a character can start a data-path segment
+// that follows a '.' separator. Valid segments are:
+//   - words (word keys):     person.name
+//   - integers (indexes):    person.0  (also negative: person.-1)
+//   - strings (string keys): person."name"
+func isDataPathSegmentStart(ch byte) bool {
+	return isLetter(ch) || isDigit(ch) || ch == '-' || ch == '"' || ch == '`'
+}
+
+// readDataPathStringSegment advances past a quoted string segment inside a
+// data-path. It is called with l.ch at the opening quote. It handles escape
+// sequences like readString, but does not enforce trailing whitespace.
+// It returns "" on success, or an error message.
+func (l *Lexer) readDataPathStringSegment() string {
+	delimiter := l.ch
+	multiline := delimiter == '`'
+	l.readChar() // Skip opening quote
+
+	for l.ch != 0 && l.ch != delimiter {
+		// Handle escape sequences properly
+		if l.ch == '\\' {
+			l.readChar()
+			if l.ch != 0 {
+				l.readChar()
+			}
+		} else {
+			if !multiline && (l.ch == '\n' || l.ch == '\r') {
+				return fmt.Sprintf("Unescaped newline in double-quoted string starting at line %d, column %d. Use backtick-delimited strings for multiline content, or escape newlines as \\n.", l.startLine, l.startCol)
+			}
+			l.readChar()
+		}
+	}
+
+	if l.ch == delimiter {
+		l.readChar() // Skip closing quote
+	} else {
+		return fmt.Sprintf("Unterminated string starting at line %d, column %d. Missing closing quote ('%c').", l.startLine, l.startCol, delimiter)
+	}
+
+	return ""
+}
+
+// readDataPath reads the rest of a data-path token. It is called after the
+// first word segment has been read, with l.ch at the first '.' separator.
+// The full token value (including the leading word) is emitted as a single
+// NPEG_TOKEN_DATAPATH token, which the parser then splits into segments.
+func (l *Lexer) readDataPath() NoPEGToken {
+	// Read segments separated by '.'
+	for l.ch == '.' {
+		l.readChar() // Skip '.'
+
+		switch {
+		case l.ch == '"' || l.ch == '`':
+			// String segment
+			if errMsg := l.readDataPathStringSegment(); errMsg != "" {
+				return l.makeTokenErr(NPEG_TOKEN_ERROR, errMsg, ERR_UNKNOWN)
+			}
+		case isDigit(l.ch) || (l.ch == '-' && isDigit(l.peekChar())):
+			// Integer segment (possibly negative)
+			if l.ch == '-' {
+				l.readChar()
+			}
+			for isDigit(l.ch) {
+				l.readChar()
+			}
+		case isLetter(l.ch):
+			// Word segment (literal word key)
+			for isWordCharacter(l.ch) {
+				l.readChar()
+			}
+		default:
+			invalidChar := l.ch
+			tokenValue := l.input[l.tokenStart:l.pos]
+			errMsg := fmt.Sprintf("Invalid data path segment in '%s'. Found '%c' after '.'. Data path segments must be words, integers or strings.", tokenValue, invalidChar)
+			return l.makeTokenErr(NPEG_TOKEN_ERROR, errMsg, determineLexerError(l.ch))
+		}
+	}
+
+	// Ensure the token is followed by whitespace
+	if !isWhitespaceOrEOF(l.ch) {
+		invalidChar := l.ch
+		tokenValue := l.input[l.tokenStart:l.pos]
+		errMsg := fmt.Sprintf("Missing space after data path '%s'. Found '%c' immediately after. Data paths must be followed by whitespace.", tokenValue, invalidChar)
+		return l.makeTokenErr(NPEG_TOKEN_ERROR, errMsg, determineLexerError(l.ch))
+	}
+
+	return l.makeToken(NPEG_TOKEN_DATAPATH, l.input[l.tokenStart:l.pos])
 }
 
 // readString reads a string token.
@@ -1021,7 +1166,9 @@ func (l *Lexer) readOpWord() NoPEGToken {
 	hasWordChars := false // track word chars before first '/'
 
 	// Read the word part
-	for isWordCharacter(l.ch) || l.ch == '/' || l.ch == '<' || l.ch == '~' {
+	// Note: '.' is included explicitly (even though it is not a word character)
+	// so that multi-dot operators like '..' remain valid opwords.
+	for isWordCharacter(l.ch) || l.ch == '/' || l.ch == '<' || l.ch == '~' || l.ch == '.' {
 		// Check if it's a context path (word/word)
 		// For dot-prefixed tokens: only set cpath if word chars appeared before the slash.
 		// This ensures './' is a dotword (/ is an op-word), while '.ctx/word' is an opcpath.
@@ -1663,17 +1810,7 @@ func (p *NoPEGParser) parseToken() (env.Object, error) {
 		return *env.NewDecimal(val), nil
 	case NPEG_TOKEN_STRING:
 		str := p.currentToken.Value[1 : len(p.currentToken.Value)-1]
-		// Process escape sequences.
-		// IMPORTANT: \\ and \" must be processed FIRST so that escaped backslashes
-		// and quotes don't get consumed by the other escape sequence replacements.
-		// Example: "a\\nb" should produce literal "a\nb" (backslash-n), not "a<newline>b".
-		str = strings.Replace(str, "\\\\", "\\", -1)
-		str = strings.Replace(str, "\\\"", "\"", -1)
-		str = strings.Replace(str, "\\n", "\n", -1)
-		str = strings.Replace(str, "\\r", "\r", -1)
-		str = strings.Replace(str, "\\t", "\t", -1)
-		str = strings.Replace(str, "\\e", "\x1b", -1)
-		str = processHexEscapesNoPeg(str) // Handle \xHH hex escapes
+		str = unescapeStringContent(str)
 		return *env.NewString(str), nil
 	case NPEG_TOKEN_URI:
 		parts := strings.SplitN(p.currentToken.Value, "://", 2)
@@ -1734,6 +1871,23 @@ func (p *NoPEGParser) parseToken() (env.Object, error) {
 			return *env.NewCPath(3, words), nil
 		}
 		return nil, fmt.Errorf("invalid get context path '%s'. Get context paths must have at least 2 parts separated by '/', like '?word/word'. Found %d part(s)", p.currentToken.Value, len(parts))
+	case NPEG_TOKEN_DATAPATH:
+		parts := splitDataPathValue(p.currentToken.Value)
+		if len(parts) < 2 {
+			return nil, fmt.Errorf("invalid data path '%s'. Data paths must have at least 2 parts separated by '.', like 'word.0.\"key\"'. Found %d part(s)", p.currentToken.Value, len(parts))
+		}
+		segments := make([]env.Object, len(parts))
+		for i, part := range parts {
+			if part == "" {
+				return nil, fmt.Errorf("invalid data path '%s'. Empty segment found between '.' separators.", p.currentToken.Value)
+			}
+			seg, err := p.parseDataPathSegment(part)
+			if err != nil {
+				return nil, err
+			}
+			segments[i] = seg
+		}
+		return *env.NewDataPath(segments), nil
 	case NPEG_TOKEN_COMMA:
 		return env.Comma{}, nil
 	case NPEG_TOKEN_VOID:
@@ -1756,6 +1910,38 @@ func (p *NoPEGParser) parseToken() (env.Object, error) {
 		return nil, fmt.Errorf("%s", errMsg)
 	default:
 		return nil, fmt.Errorf("unknown token type: %d", p.currentToken.Type)
+	}
+}
+
+// parseDataPathSegment converts a single data-path segment (the raw text
+// between '.' separators) into its Object representation. The first segment
+// is the subject word; later segments are literal accessors (keys/indexes):
+//   - word segment   -> Word (literal word key)
+//   - integer segment -> Integer (index)
+//   - string segment  -> String (string key)
+func (p *NoPEGParser) parseDataPathSegment(part string) (env.Object, error) {
+	switch {
+	case part[0] == '"' || part[0] == '`':
+		// String segment
+		if len(part) < 2 || part[len(part)-1] != part[0] {
+			return nil, fmt.Errorf("invalid string segment '%s' in data path. String segments must be quoted.", part)
+		}
+		str := part[1 : len(part)-1]
+		str = unescapeStringContent(str)
+		return *env.NewString(str), nil
+	case isDigit(part[0]) || (part[0] == '-' && len(part) > 1 && isDigit(part[1])):
+		// Integer segment (index)
+		val, err := strconv.ParseInt(part, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid integer segment '%s' in data path. Indexes must be integers like 0, 42 or -1.", part)
+		}
+		return *env.NewInteger(val), nil
+	case isLetter(part[0]):
+		// Word segment (literal word key)
+		idx := p.wordIndex.IndexWord(part)
+		return *env.NewWord(idx), nil
+	default:
+		return nil, fmt.Errorf("invalid data path segment '%s'. Segments must be words, integers or strings.", part)
 	}
 }
 

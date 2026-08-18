@@ -40,7 +40,7 @@ assert\display "<=> inside expression" {
 } 3
 
 ; ============================================
-; Kindwords ~(type)~ and ~(type) — now routed to readKindWord
+; Kindwords ~(type)~ and ~(type) - now routed to readKindWord
 ; ============================================
 
 assert\display "kindword ~(integer)~" {
@@ -95,7 +95,7 @@ assert\display "unclosed kindword error message mentions parenthesis" {
 ; Error recovery: delimiter spacing error should not skip chars
 ; (was: readOneCharToken had extra l.readChar() on error)
 ; Verify that after a spacing error, subsequent valid tokens parse correctly.
-; "1}2}" — first close fails (no space before }), second close } should also
+; "1}2}" - first close fails (no space before }), second close } should also
 ; be an error, not consumed.
 ; ============================================
 
@@ -122,7 +122,7 @@ assert\display "kindword followed by word with space" {
 	length? { ~(integer)~ word }
 } 2
 
-assert\display "kindword must have space after — errors when not" {
+assert\display "kindword must have space after - errors when not" {
 	try { do { load "~(integer)~word" } } |type?
 } 'error
 

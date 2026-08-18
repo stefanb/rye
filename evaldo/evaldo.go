@@ -130,7 +130,7 @@ func EvalBlockInj_Rye2(ps *env.ProgramState, inj env.Object, injnow bool) {
 				if ps.Ser.Pos() < ps.Ser.Len() {
 					switch ps.Ser.Peek().(type) {
 					case env.Pipeword, env.Dotword, env.LSetword, env.Opword:
-						// Handler token follows — let the loop continue
+						// Handler token follows - let the loop continue
 					default:
 						ps.ErrorFlag = true
 						return
@@ -647,6 +647,9 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 	case env.CPathType:
 		EvalWord(ps, object, nil, false, false, false, false)
 		return
+	case env.DataPathType:
+		EvalDataPath(ps, object.(env.DataPath))
+		return
 	// case env.FunctionType: // works just for regular words ... as function
 	// 	CallFunction(object.(env.Function), ps, nil, false, nil)
 	case env.GenwordType:
@@ -1138,6 +1141,57 @@ func EvalGetword(ps *env.ProgramState, word env.Getword, leftVal env.Object, toL
 		ps.Res = env.NewError("Word not found: `" + word.Print(*ps.Idx) + "`.")
 		return
 	}
+}
+
+// EvalDataPath evaluates a data path value (word.0."key".word).
+// Called from: EvalExpression_DispatchType
+// Purpose: The first segment is the subject word, which is looked up in the
+// current context (like a word). The remaining segments are literal accessors
+// (keys/indexes) used to retrieve nested values from blocks, lists, dicts,
+// contexts, tables, etc. It mirrors the `->` (get) extraction semantics with
+// 0-based indexing.
+func EvalDataPath(ps *env.ProgramState, dp env.DataPath) {
+	if len(dp.Path) == 0 {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError("Empty data path.")
+		return
+	}
+
+	// The subject is always a word (the data-path lexer guarantees this).
+	subject, ok := dp.Path[0].(env.Word)
+	if !ok {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError("Data path subject must be a word.")
+		return
+	}
+
+	// Look up the subject word in the context (do not call it if it's a function).
+	object, found := ps.Ctx.Get(subject.Index)
+	if !found {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError2(5, "Word not found: `"+ps.Idx.GetWord(subject.Index)+"`.")
+		return
+	}
+
+	// Walk the remaining literal accessors, retrieving nested values.
+	current := object
+	for _, accessor := range dp.Path[1:] {
+		current = getFrom(ps, current, accessor, false)
+		if ps.FailureFlag {
+			// Convert the failure into a hard error, like cpath traversal failures.
+			ps.FailureFlag = false
+			ps.ErrorFlag = true
+			if err, isErr := current.(env.Error); isErr {
+				err.CodeBlock = ps.Ser
+				ps.Res = err
+			} else {
+				ps.Res = current
+			}
+			return
+		}
+	}
+
+	ps.Res = current
 }
 
 // EvalObject evaluates a Rye object, particularly handling callable types (builtins, functions).
@@ -2555,7 +2609,7 @@ func tryHandleFailure(ps *env.ProgramState) bool {
 					return false // Handler may process the failure
 				}
 			}
-			return true // No handler available — convert to error
+			return true // No handler available - convert to error
 		}
 
 		// Inside a function: check if failure should be converted to error or propagated

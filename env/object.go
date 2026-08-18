@@ -229,6 +229,12 @@ const (
 	// (internal)
 	// It represents a persistent table.
 	PersistentTableType Type = 54
+	// DataPath is a syntax type
+	// word.0."key".word
+	// It represents a data path. The first segment is a word (the subject),
+	// the remaining segments are literal accessors (keys/indexes):
+	// words, integers, decimals or strings.
+	DataPathType Type = 55
 )
 
 // after adding new type here, also add string to idxs.go
@@ -2306,6 +2312,104 @@ func (i CPath) Dump(e Idxs) string {
 			b.WriteString("/")
 		}
 		b.WriteString(w.Dump(e))
+	}
+	return b.String()
+}
+
+//
+// DATAPATH
+//
+
+// DataPath represents a data path value (word.0."key".word).
+// The first segment (Path[0]) is the subject word which gets evaluated
+// normally. The remaining segments are literal accessors (keys/indexes)
+// used to retrieve nested values from blocks, lists, dicts, etc.
+type DataPath struct {
+	Path []Object // first is the subject word, the rest are literal keys/indexes
+}
+
+func (i DataPath) Type() Type {
+	return DataPathType
+}
+
+func (i DataPath) Inspect(e Idxs) string {
+	var b strings.Builder
+	b.WriteString("[DataPath: ")
+	for j, seg := range i.Path {
+		if j > 0 {
+			b.WriteString(".")
+		}
+		b.WriteString(seg.Inspect(e))
+	}
+	b.WriteString("]")
+	return b.String()
+}
+
+func (o DataPath) GetSegmentNumber(i int) Object {
+	if i >= 1 && i <= len(o.Path) {
+		return o.Path[i-1]
+	}
+	return nil
+}
+
+func (o DataPath) GetSubject() Object {
+	if len(o.Path) > 0 {
+		return o.Path[0]
+	}
+	return nil
+}
+
+func (o DataPath) GetAccessors() []Object {
+	if len(o.Path) > 1 {
+		return o.Path[1:]
+	}
+	return []Object{}
+}
+
+func (b DataPath) Print(e Idxs) string {
+	if len(b.Path) > 0 {
+		return b.Path[0].Print(e)
+	}
+	return ""
+}
+
+func (i DataPath) Trace(msg string) {
+	fmt.Print(msg + " (datapath): ")
+}
+
+func (i DataPath) GetKind() int {
+	return 0
+}
+
+func NewDataPath(path []Object) *DataPath {
+	var dp DataPath
+	dp.Path = path
+	return &dp
+}
+
+func (i DataPath) Equal(o Object) bool {
+	if i.Type() != o.Type() {
+		return false
+	}
+	oDP := o.(DataPath)
+	if len(i.Path) != len(oDP.Path) {
+		return false
+	}
+	for j, seg := range i.Path {
+		if !seg.Equal(oDP.Path[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (i DataPath) Dump(e Idxs) string {
+	var b strings.Builder
+	for j, seg := range i.Path {
+		if j > 0 {
+			b.WriteString(".")
+		}
+		b.WriteString(seg.Dump(e))
 	}
 	return b.String()
 }

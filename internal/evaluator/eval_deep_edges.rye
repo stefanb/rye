@@ -7,7 +7,7 @@
 print "## Evaluator Deep Edge Tests"
 
 ; =============================================================================
-; 1. Deep operator chains — mixed word types in long sequences
+; 1. Deep operator chains - mixed word types in long sequences
 ;    Stress-tests expression evaluation with many chained operations
 ; =============================================================================
 print ""
@@ -76,7 +76,7 @@ assert\display "check wraps error through 5 levels" {
 } "level3"
 
 ; =============================================================================
-; 3. Context path extremes — deep parent access and long chains
+; 3. Context path extremes - deep parent access and long chains
 ; =============================================================================
 print ""
 print "-- Context path extremes --"
@@ -111,7 +111,7 @@ assert\display "context with function returning cpath" {
 } 42
 
 ; =============================================================================
-; 4. Void propagation — void through all word types and chains
+; 4. Void propagation - void through all word types and chains
 ; =============================================================================
 print ""
 print "-- Void propagation --"
@@ -181,7 +181,7 @@ assert\display "filter survives with fix in callback" {
 } { 2 4 6 }
 
 ; =============================================================================
-; 7. Word type priority — op/dot/pipe with same base name
+; 7. Word type priority - op/dot/pipe with same base name
 ; =============================================================================
 print ""
 print "-- Word type priority --"
@@ -249,7 +249,7 @@ assert\display "comma with setword assigns last" {
 } "C"
 
 ; =============================================================================
-; 10. Block modes — all 5 modes working together
+; 10. Block modes - all 5 modes working together
 ; =============================================================================
 print ""
 print "-- Block mode interactions --"
@@ -287,7 +287,7 @@ assert\display "nested mixed: { [ ( l{ } ) ] }" {
 } 1
 
 ; =============================================================================
-; 11. try-all — multiple expressions, first non-error
+; 11. try-all - multiple expressions, first non-error
 ; =============================================================================
 print ""
 print "-- try-all exdges --"
@@ -305,7 +305,7 @@ assert\display "try-all with all errors returns error" {
 } 'error
 
 ; =============================================================================
-; 12. Observer chain reactions — observer triggering observer
+; 12. Observer chain reactions - observer triggering observer
 ; =============================================================================
 print ""
 print "-- Observer chain reactions --"
@@ -333,7 +333,7 @@ assert\display "multiple observers, each updates total" {
 } 11
 
 ; =============================================================================
-; 13. fix\\either fix\\else fix\\continue — branching on failure
+; 13. fix\\either fix\\else fix\\continue - branching on failure
 ; =============================================================================
 print ""
 print "-- fix branching constructs --"
@@ -355,7 +355,7 @@ assert\display "fix\\else on failure returns default" {
 } "default"
 
 ; =============================================================================
-; 14. finally — cleanup always runs
+; 14. finally - cleanup always runs
 ; =============================================================================
 print ""
 print "-- finally keyword --"

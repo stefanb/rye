@@ -1,4 +1,4 @@
-; Loader Edge Tests — stress the non-PEG lexer/parser at boundaries
+; Loader Edge Tests - stress the non-PEG lexer/parser at boundaries
 ; Tests: deep nesting, long input, escape sequences, boundary tokens, error recovery
 
 print "## Loader Edge & Stress Tests"
