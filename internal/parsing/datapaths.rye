@@ -1,0 +1,79 @@
+; Parser tests for data paths
+print "## Data Paths"
+
+; Basic data path: subject word + literal word key
+assert\display "two-part word.word data path" {
+	type? first { word.name }
+} 'datapath
+
+; Subject word + integer index
+assert\display "word.integer data path" {
+	type? first { person.0 }
+} 'datapath
+
+; Subject word + integer + string
+assert\display "word.integer.\"string\" data path" {
+	type? first { person.0."age" }
+} 'datapath
+
+; Subject word + word + integer + string
+assert\display "mixed word.integer.\"string\" segments" {
+	type? first { word.lit-word.5."string" }
+} 'datapath
+
+; Subject word + string key
+assert\display "word.\"string\" data path" {
+	type? first { person."name" }
+} 'datapath
+
+; Subject word + negative integer index
+assert\display "word.-1 data path" {
+	type? first { person.-1 }
+} 'datapath
+
+; Subject word + backtick string key
+assert\display "word.`string` data path" {
+	type? first { person.`age` }
+} 'datapath
+
+; Three word segments
+assert\display "a.b.c data path" {
+	type? first { a.b.c }
+} 'datapath
+
+; String segment containing a dot must not be split
+assert\display "string segment with dot inside" {
+	type? first { person."a.b" }
+} 'datapath
+
+; Regression: '.' is no longer part of words, but existing tokens are unaffected
+assert\display "decimal is still decimal" {
+	type? first { 3.14 }
+} 'decimal
+
+assert\display "range op .. is still opword" {
+	type? first { .. }
+} 'opword
+
+assert\display "cpath is still cpath" {
+	type? first { word/word }
+} 'cpath
+
+assert\display "lone word is still word" {
+	type? first { word }
+} 'word
+
+assert\display "dotword is still dotword" {
+	type? first { .upper }
+} 'dotword
+
+; Error cases: data paths must be followed by whitespace
+assert\display "missing space after data path errors" {
+	try { do { load `person.0."age"x` } } |type?
+} 'error
+
+assert\display "valid data path loads" {
+	try { load `person.0."age"` } |type?
+} 'block
+
+print ""
