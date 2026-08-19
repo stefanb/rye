@@ -71,6 +71,7 @@ var NativeTypes = [...]string{ // Todo change to BuiltinTypes
 	"CachedBuiltin",
 	"Bytes",
 	"PersistentTable",
+	"DataPath",
 }
 
 // IndexWord returns the index of a word, creating a new index if it doesn't exist.

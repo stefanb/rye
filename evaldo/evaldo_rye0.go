@@ -80,7 +80,15 @@ func Rye0_EvalExpression_DispatchType(ps *env.ProgramState) *env.ProgramState {
 	case env.WordType:
 		return Rye0_EvalWord(ps, object.(env.Word), nil, false, false)
 	case env.CPathType:
+		cpath := object.(env.CPath)
+		if cpath.Mode == 1 || cpath.Mode == 2 {
+			// OpCPath/pipecpath are in-stream tokens and require a left value.
+			setError(ps, "In-stream token, but not in stream")
+			return ps
+		}
 		return Rye0_EvalWord(ps, object, nil, false, false)
+	case env.DataPathType:
+		return Rye0_EvalDataPath(ps, object.(env.DataPath))
 	case env.FunctionType:
 		fn := object.(env.Function)
 		return Rye0_CallFunction_Optimized(fn, ps, nil, false, nil)
@@ -229,16 +237,32 @@ func Rye0_findWordValue(ps *env.ProgramState, word1 env.Object) (bool, env.Objec
 	return found, object, nil
 }
 
-// Pre-allocated string for Dict case in Rye0_findCPathValue to avoid allocation
-var dictPathString = env.NewString("TODO... what is this?")
-
 // Rye0_findCPathValue handles the lookup of context path values.
+// It traverses nested contexts and dicts (using word-name string keys),
+// and supports '@' parent-context navigation (represented as '_@' words).
 func Rye0_findCPathValue(ps *env.ProgramState, word env.CPath) (bool, env.Object, *env.RyeCtx) {
 	currCtx := ps.Ctx
 	i := 1
 
+pathLoop:
 	for i <= len(word.Words) {
 		currWord := word.GetWordNumber(i)
+		wordName := ps.Idx.GetWord(currWord.Index)
+
+		// Parent context navigation (@/ or @/@/)
+		if wordName == "_@" {
+			if currCtx.Parent != nil {
+				currCtx = currCtx.Parent
+				i++
+				if len(word.Words) >= i {
+					continue
+				}
+				// No more path parts: return the parent context itself
+				return true, currCtx, currCtx
+			}
+			return false, nil, currCtx
+		}
+
 		object, found := currCtx.Get(currWord.Index)
 
 		if !found {
@@ -250,14 +274,71 @@ func Rye0_findCPathValue(ps *env.ProgramState, word env.CPath) (bool, env.Object
 			case *env.RyeCtx:
 				currCtx = swObj
 				i++
+				continue
 			case env.Dict:
-				// Use pre-allocated string to avoid allocation
-				return found, *dictPathString, currCtx
+				// Traverse the dict using word-name string keys
+				currDict := swObj
+				for len(word.Words) > i {
+					i++
+					keyWord := word.GetWordNumber(i)
+					keyStr := ps.Idx.GetWord(keyWord.Index)
+					if val, ok := currDict.Data[keyStr]; ok {
+						object = env.ToRyeValue(val)
+						if len(word.Words) > i {
+							switch nextObj := object.(type) {
+							case env.Dict:
+								currDict = nextObj
+								continue
+							case *env.Dict:
+								currDict = *nextObj
+								continue
+							case *env.RyeCtx:
+								currCtx = nextObj
+								i++
+								continue pathLoop
+							default:
+								return false, nil, currCtx
+							}
+						}
+					} else {
+						return false, nil, currCtx
+					}
+				}
+				return true, object, currCtx
+			case *env.Dict:
+				currDict := *swObj
+				for len(word.Words) > i {
+					i++
+					keyWord := word.GetWordNumber(i)
+					keyStr := ps.Idx.GetWord(keyWord.Index)
+					if val, ok := currDict.Data[keyStr]; ok {
+						object = env.ToRyeValue(val)
+						if len(word.Words) > i {
+							switch nextObj := object.(type) {
+							case env.Dict:
+								currDict = nextObj
+								continue
+							case *env.Dict:
+								currDict = *nextObj
+								continue
+							case *env.RyeCtx:
+								currCtx = nextObj
+								i++
+								continue pathLoop
+							default:
+								return false, nil, currCtx
+							}
+						}
+					} else {
+						return false, nil, currCtx
+					}
+				}
+				return true, object, currCtx
 			default:
 				return false, nil, nil
 			}
 		} else {
-			return found, object, currCtx
+			return true, object, currCtx
 		}
 	}
 
@@ -379,6 +460,48 @@ func Rye0_EvalGetword(ps *env.ProgramState, word env.Getword, leftVal env.Object
 		setError(ps, "Word not found: "+word.Print(*ps.Idx))
 		return ps
 	}
+}
+
+// Rye0_EvalDataPath evaluates a data path value (word.0."key".word).
+// The first segment is the subject word; the remaining segments are literal
+// accessors used to retrieve nested values from blocks, lists, dicts,
+// contexts, tables, etc.
+func Rye0_EvalDataPath(ps *env.ProgramState, dp env.DataPath) *env.ProgramState {
+	if len(dp.Path) == 0 {
+		setError(ps, "Empty data path.")
+		return ps
+	}
+
+	subject, ok := dp.Path[0].(env.Word)
+	if !ok {
+		setError(ps, "Data path subject must be a word.")
+		return ps
+	}
+
+	object, found := ps.Ctx.Get(subject.Index)
+	if !found {
+		setError(ps, "Word not found: "+ps.Idx.GetWord(subject.Index))
+		return ps
+	}
+
+	current := object
+	for _, accessor := range dp.Path[1:] {
+		current = getFrom(ps, current, accessor, false)
+		if ps.FailureFlag {
+			ps.FailureFlag = false
+			ps.ErrorFlag = true
+			if err, isErr := current.(env.Error); isErr {
+				err.CodeBlock = ps.Ser
+				ps.Res = err
+			} else {
+				ps.Res = current
+			}
+			return ps
+		}
+	}
+
+	ps.Res = current
+	return ps
 }
 
 // Rye0_EvalObject evaluates a Rye object.

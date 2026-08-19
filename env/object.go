@@ -229,6 +229,12 @@ const (
 	// (internal)
 	// It represents a persistent table.
 	PersistentTableType Type = 54
+	// DataPath is a syntax type
+	// word.0."key".word
+	// It represents a data path. The first segment is a word (the subject),
+	// the remaining segments are literal accessors (keys/indexes):
+	// words, integers, decimals or strings.
+	DataPathType Type = 55
 )
 
 // after adding new type here, also add string to idxs.go
@@ -2311,6 +2317,104 @@ func (i CPath) Dump(e Idxs) string {
 }
 
 //
+// DATAPATH
+//
+
+// DataPath represents a data path value (word.0."key".word).
+// The first segment (Path[0]) is the subject word which gets evaluated
+// normally. The remaining segments are literal accessors (keys/indexes)
+// used to retrieve nested values from blocks, lists, dicts, etc.
+type DataPath struct {
+	Path []Object // first is the subject word, the rest are literal keys/indexes
+}
+
+func (i DataPath) Type() Type {
+	return DataPathType
+}
+
+func (i DataPath) Inspect(e Idxs) string {
+	var b strings.Builder
+	b.WriteString("[DataPath: ")
+	for j, seg := range i.Path {
+		if j > 0 {
+			b.WriteString(".")
+		}
+		b.WriteString(seg.Inspect(e))
+	}
+	b.WriteString("]")
+	return b.String()
+}
+
+func (o DataPath) GetSegmentNumber(i int) Object {
+	if i >= 1 && i <= len(o.Path) {
+		return o.Path[i-1]
+	}
+	return nil
+}
+
+func (o DataPath) GetSubject() Object {
+	if len(o.Path) > 0 {
+		return o.Path[0]
+	}
+	return nil
+}
+
+func (o DataPath) GetAccessors() []Object {
+	if len(o.Path) > 1 {
+		return o.Path[1:]
+	}
+	return []Object{}
+}
+
+func (b DataPath) Print(e Idxs) string {
+	if len(b.Path) > 0 {
+		return b.Path[0].Print(e)
+	}
+	return ""
+}
+
+func (i DataPath) Trace(msg string) {
+	fmt.Print(msg + " (datapath): ")
+}
+
+func (i DataPath) GetKind() int {
+	return 0
+}
+
+func NewDataPath(path []Object) *DataPath {
+	var dp DataPath
+	dp.Path = path
+	return &dp
+}
+
+func (i DataPath) Equal(o Object) bool {
+	if i.Type() != o.Type() {
+		return false
+	}
+	oDP := o.(DataPath)
+	if len(i.Path) != len(oDP.Path) {
+		return false
+	}
+	for j, seg := range i.Path {
+		if !seg.Equal(oDP.Path[j]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (i DataPath) Dump(e Idxs) string {
+	var b strings.Builder
+	for j, seg := range i.Path {
+		if j > 0 {
+			b.WriteString(".")
+		}
+		b.WriteString(seg.Dump(e))
+	}
+	return b.String()
+}
+
+//
 // BYTES
 //
 
@@ -2532,6 +2636,45 @@ func NewDictFromSeries(block TSeries, idx *Idxs) Dict {
 	return Dict{data, Word{0, false}}
 }
 
+// IsDictKey reports whether the object is a valid passive-dict (d{ }) key:
+// strings, tagwords, words and setwords.
+func IsDictKey(obj Object) bool {
+	switch obj.(type) {
+	case String, Tagword, Word, Setword:
+		return true
+	}
+	return false
+}
+
+// NewDictFromSeriesChecked is like NewDictFromSeries but returns an error for
+// invalid keys or non-literal values instead of silently dropping them.
+func NewDictFromSeriesChecked(block TSeries, idx *Idxs) (Dict, error) {
+	data := make(map[string]any)
+	for block.Pos() < block.Len() {
+		pos := block.Pos()
+		key := block.Pop()
+		val := block.Pop()
+		var keyStr string
+		switch k := key.(type) {
+		case String:
+			keyStr = k.Value
+		case Tagword:
+			keyStr = idx.GetWord(k.Index)
+		case Word:
+			keyStr = idx.GetWord(k.Index)
+		case Setword:
+			keyStr = idx.GetWord(k.Index)
+		default:
+			return Dict{}, fmt.Errorf("invalid key %s at position %d; keys must be strings, tagwords, words, or setwords", key.Inspect(*idx), pos)
+		}
+		if val != nil && !IsCollectionLiteral(val) {
+			return Dict{}, fmt.Errorf("non-literal value %s at position %d; only literal values (strings, numbers, nested lists and dicts) are allowed", val.Inspect(*idx), pos+1)
+		}
+		data[keyStr] = val
+	}
+	return Dict{data, Word{0, false}}, nil
+}
+
 func (i Dict) Type() Type {
 	return DictType
 }
@@ -2712,6 +2855,43 @@ func NewListFromSeries(block TSeries) List {
 		}
 	}
 	return *NewList(data)
+}
+
+// IsCollectionLiteral reports whether the object is a literal value that can be
+// stored in a passive or evaluated list/dict: scalars plus nested lists/dicts.
+func IsCollectionLiteral(obj Object) bool {
+	switch obj.(type) {
+	case String, Integer, Decimal, Boolean, List, Dict:
+		return true
+	}
+	return false
+}
+
+// NewListFromSeriesChecked is like NewListFromSeries but returns an error for
+// non-literal values instead of silently dropping them (leaving nil entries).
+func NewListFromSeriesChecked(block TSeries, idx *Idxs) (List, error) {
+	data := make([]any, block.Len())
+	for block.Pos() < block.Len() {
+		i := block.Pos()
+		k1 := block.Pop() // TODO -- USE RyeToRaw
+		switch k := k1.(type) {
+		case String:
+			data[i] = k.Value
+		case Integer:
+			data[i] = k.Value
+		case Decimal:
+			data[i] = k.Value
+		case Boolean:
+			data[i] = k.Value
+		case List:
+			data[i] = k
+		case Dict:
+			data[i] = k
+		default:
+			return List{}, fmt.Errorf("non-literal value %s at position %d; only literal values (strings, numbers, nested lists and dicts) are allowed", k1.Inspect(*idx), i)
+		}
+	}
+	return *NewList(data), nil
 }
 
 func NewBlockFromList(list List) TSeries {

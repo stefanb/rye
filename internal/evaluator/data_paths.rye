@@ -1,0 +1,172 @@
+; Data Path Tests
+; Tests nested data access via data paths (word.0."key".word), the compact
+; syntax for extraction that is equivalent to chained -> get operations.
+;
+; Run with: cd internal/evaluator && rye main.rye  (auto-loaded by main.rye)
+
+print "## Data Path Tests"
+
+; ---------------------------------------------------------------------------
+; 1. Block + dict nested access
+; ---------------------------------------------------------------------------
+print ""
+print "-- Block of dicts access --"
+
+private {
+assert\display "block of dicts: index then string key" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	person.0."age"
+} 30
+}
+
+private {
+assert\display "block of dicts: second element name" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	person.1."name"
+} "Jane"
+}
+
+; ---------------------------------------------------------------------------
+; 2. Equivalence with -> extraction
+; ---------------------------------------------------------------------------
+print ""
+print "-- Equivalence with -> --"
+
+private {
+assert\display "datapath equals chained ->" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	person.0."age" = ( person -> 0 -> "age" )
+} true
+}
+
+private {
+assert\display "datapath name equals chained ->" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	person.1."name" = ( person -> 1 -> "name" )
+} true
+}
+
+; ---------------------------------------------------------------------------
+; 3. List index access
+; ---------------------------------------------------------------------------
+print ""
+print "-- List access --"
+
+private {
+assert\display "list index 0" {
+	lst: list { 10 20 30 }
+	lst.0
+} 10
+}
+
+private {
+assert\display "list index 1" {
+	lst: list { 10 20 30 }
+	lst.1
+} 20
+}
+
+private {
+assert\display "list index 2" {
+	lst: list { 10 20 30 }
+	lst.2
+} 30
+}
+
+; ---------------------------------------------------------------------------
+; 4. Context word-key access vs dict string-key access
+; ---------------------------------------------------------------------------
+print ""
+print "-- Context word key vs dict string key --"
+
+private {
+assert\display "context word key" {
+	ctx: context { name: "Alice" }
+	ctx.name
+} "Alice"
+}
+
+private {
+assert\display "dict string key" {
+	d: dict [ "name" "Bob" ]
+	d."name"
+} "Bob"
+}
+
+; ---------------------------------------------------------------------------
+; 5. Deep nesting
+; ---------------------------------------------------------------------------
+print ""
+print "-- Deep nesting --"
+
+private {
+assert\display "deep block->dict->dict" {
+	person: [ dict [ "address" dict [ "city" "London" ] ] ]
+	person.0."address"."city"
+} "London"
+}
+
+private {
+assert\display "nested dict in dict" {
+	ccc: dict [ "b" dict [ "x" dict [ "f" dict [ "a" "101" ] ] ] ]
+	ccc."b"."x"."f"."a"
+} "101"
+}
+
+; ---------------------------------------------------------------------------
+; 6. The original motivation example
+; ---------------------------------------------------------------------------
+print ""
+print "-- Comparison example --"
+
+private {
+assert\display "compare ages with datapath" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	person.0."age" > person.1."age"
+} true
+}
+
+private {
+assert\display "if with datapath comparison and body" {
+	person: [ dict [ "age" 30 "name" "John" ] dict [ "age" 25 "name" "Jane" ] ]
+	if person.0."age" > person.1."age" { person.0."name" }
+} "John"
+}
+
+; ---------------------------------------------------------------------------
+; 7. Error cases
+; ---------------------------------------------------------------------------
+print ""
+print "-- Error cases --"
+
+assert\display "subject not found errors" {
+	try { nope.0."age" }
+	|type?
+} 'error
+
+private {
+assert\display "index out of bounds errors" {
+	person: [ dict [ "age" 30 ] ]
+	try { person.5."age" }
+	|type?
+} 'error
+}
+
+private {
+assert\display "string key on block errors" {
+	person: [ dict [ "age" 30 ] ]
+	try { person."age" }
+	|type?
+} 'error
+}
+
+private {
+assert\display "word key on dict errors" {
+	d: dict [ "name" "Bob" ]
+	try { d.name }
+	|type?
+} 'error
+}
+
+print ""
+print "Data path tests completed."

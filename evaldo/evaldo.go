@@ -130,7 +130,7 @@ func EvalBlockInj_Rye2(ps *env.ProgramState, inj env.Object, injnow bool) {
 				if ps.Ser.Pos() < ps.Ser.Len() {
 					switch ps.Ser.Peek().(type) {
 					case env.Pipeword, env.Dotword, env.LSetword, env.Opword:
-						// Handler token follows — let the loop continue
+						// Handler token follows - let the loop continue
 					default:
 						ps.ErrorFlag = true
 						return
@@ -616,6 +616,12 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 					ps.Ser = ser
 					return
 				}
+				if !env.IsCollectionLiteral(ps.Res) {
+					ps.ErrorFlag = true
+					ps.Res = env.NewError(fmt.Sprintf("non-literal value %s in evaluated list l[ ]; only literal values (strings, numbers, nested lists and dicts) are allowed", ps.Res.Inspect(*ps.Idx)))
+					ps.Ser = ser
+					return
+				}
 				res = append(res, ps.Res)
 			}
 			ps.Ser = ser
@@ -635,7 +641,13 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 				res = append(res, ps.Res)
 			}
 			ps.Ser = ser
-			ps.Res = env.NewDictFromSeries(*env.NewTSeries(res), ps.Idx)
+			dict, err := env.NewDictFromSeriesChecked(*env.NewTSeries(res), ps.Idx)
+			if err != nil {
+				ps.ErrorFlag = true
+				ps.Res = env.NewError(err.Error())
+				return
+			}
+			ps.Res = dict
 		}
 	// specific word types 'tagword is the lit-word
 	case env.TagwordType:
@@ -645,7 +657,18 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 		EvalWord(ps, object.(env.Word), nil, false, false, false, false)
 		return
 	case env.CPathType:
+		cpath := object.(env.CPath)
+		if cpath.Mode == 1 || cpath.Mode == 2 {
+			// OpCPath (.word/path) and PipeCPath (|word/path) are in-stream tokens:
+			// they require a value on the left and cannot start an expression.
+			ps.ErrorFlag = true
+			ps.Res = env.NewError("In-stream token, but not in stream")
+			return
+		}
 		EvalWord(ps, object, nil, false, false, false, false)
+		return
+	case env.DataPathType:
+		EvalDataPath(ps, object.(env.DataPath))
 		return
 	// case env.FunctionType: // works just for regular words ... as function
 	// 	CallFunction(object.(env.Function), ps, nil, false, nil)
@@ -742,57 +765,11 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 //     chain and the result does not carry a specific context origin. For CPath words, the
 //     traversed context is returned. Callers MUST handle nil ctx (all current callers do).
 func findWordValue(ps *env.ProgramState, word1 env.Object) (bool, env.Object, *env.RyeCtx) {
-	switch word := word1.(type) {
-	case env.Word:
-		object, found := ps.Ctx.Get(word.Index)
-		return found, object, nil
-	case env.Opword:
-		object, found := ps.Ctx.Get(word.Index)
-		return found, object, nil
-	case env.Dotword:
-		object, found := ps.Ctx.Get(word.Index)
-		return found, object, nil
-	case env.Pipeword:
-		object, found := ps.Ctx.Get(word.Index)
-		return found, object, nil
-	case env.CPath:
-		currCtx := ps.Ctx
-		for i := 1; ; i++ {
-			currWord := word.GetWordNumber(i)
-			// Check if word is "_@" (parent context navigation)
-			wordStr := ps.Idx.GetWord(currWord.Index)
-			if wordStr == "_@" {
-				// Go to parent context
-				if currCtx.Parent != nil {
-					currCtx = currCtx.Parent
-					if len(word.Words) > i {
-						continue
-					}
-					// If no more path parts, return the parent context itself
-					return true, currCtx, currCtx
-				}
-				return false, nil, currCtx
-			}
-			object, found := currCtx.Get(currWord.Index)
-			if found && len(word.Words) > i {
-				switch swObj := object.(type) {
-				case *env.RyeCtx:
-					currCtx = swObj
-					continue
-				case env.Dict:
-					return found, *env.NewString("No word value!!"), currCtx
-				default:
-					// Bug fix: non-traversable object (not a context or dict) with more
-					// path segments remaining - this is an error, not a silent call.
-					_ = swObj
-					return false, nil, currCtx
-				}
-			}
-			return found, object, currCtx
-		}
-	default:
-		return false, nil, nil
-	}
+	// Delegate to the failure-info variant so context paths (including dict
+	// traversal) behave identically everywhere, instead of returning a
+	// placeholder string like the old dict case did.
+	found, object, ctx, _ := findWordValueWithFailureInfo(ps, word1)
+	return found, object, ctx
 }
 
 // findWordValueWithFailureInfo is an extended version of findWordValue that includes failure diagnostics.
@@ -832,17 +809,11 @@ func findWordValueWithFailureInfo(ps *env.ProgramState, word1 env.Object) (bool,
 		return found, object, nil, ""
 	case env.CPath:
 		currCtx := ps.Ctx
-		var contextPath strings.Builder
 		i := 1
 	pathLoop:
 		for {
 			currWord := word.GetWordNumber(i)
 			wordName := ps.Idx.GetWord(currWord.Index)
-			if i == 1 {
-				contextPath.WriteString(wordName)
-			} else {
-				contextPath.WriteString("/" + wordName)
-			}
 
 			// Check if word is "_@" (parent context navigation)
 			if wordName == "_@" {
@@ -897,6 +868,39 @@ func findWordValueWithFailureInfo(ps *env.ProgramState, word1 env.Object) (bool,
 								switch nextObj := object.(type) {
 								case env.Dict:
 									currDict = nextObj
+									continue
+								case *env.Dict:
+									currDict = *nextObj
+									continue
+								case *env.RyeCtx:
+									currCtx = nextObj
+									i += 1
+									continue pathLoop
+								default:
+									return false, nil, currCtx, keyStr + " is not a dict or context"
+								}
+							}
+						} else {
+							return false, nil, currCtx, keyStr + " not found in dict"
+						}
+					}
+					return true, object, currCtx, ""
+				case *env.Dict:
+					// Handle dict path traversal (pointer variant)
+					currDict := *swObj
+					for len(word.Words) > i {
+						i += 1
+						keyWord := word.GetWordNumber(i)
+						keyStr := ps.Idx.GetWord(keyWord.Index)
+						if val, ok := currDict.Data[keyStr]; ok {
+							object = env.ToRyeValue(val)
+							if len(word.Words) > i {
+								switch nextObj := object.(type) {
+								case env.Dict:
+									currDict = nextObj
+									continue
+								case *env.Dict:
+									currDict = *nextObj
 									continue
 								case *env.RyeCtx:
 									currCtx = nextObj
@@ -1138,6 +1142,57 @@ func EvalGetword(ps *env.ProgramState, word env.Getword, leftVal env.Object, toL
 		ps.Res = env.NewError("Word not found: `" + word.Print(*ps.Idx) + "`.")
 		return
 	}
+}
+
+// EvalDataPath evaluates a data path value (word.0."key".word).
+// Called from: EvalExpression_DispatchType
+// Purpose: The first segment is the subject word, which is looked up in the
+// current context (like a word). The remaining segments are literal accessors
+// (keys/indexes) used to retrieve nested values from blocks, lists, dicts,
+// contexts, tables, etc. It mirrors the `->` (get) extraction semantics with
+// 0-based indexing.
+func EvalDataPath(ps *env.ProgramState, dp env.DataPath) {
+	if len(dp.Path) == 0 {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError("Empty data path.")
+		return
+	}
+
+	// The subject is always a word (the data-path lexer guarantees this).
+	subject, ok := dp.Path[0].(env.Word)
+	if !ok {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError("Data path subject must be a word.")
+		return
+	}
+
+	// Look up the subject word in the context (do not call it if it's a function).
+	object, found := ps.Ctx.Get(subject.Index)
+	if !found {
+		ps.ErrorFlag = true
+		ps.Res = env.NewError2(5, "Word not found: `"+ps.Idx.GetWord(subject.Index)+"`.")
+		return
+	}
+
+	// Walk the remaining literal accessors, retrieving nested values.
+	current := object
+	for _, accessor := range dp.Path[1:] {
+		current = getFrom(ps, current, accessor, false)
+		if ps.FailureFlag {
+			// Convert the failure into a hard error, like cpath traversal failures.
+			ps.FailureFlag = false
+			ps.ErrorFlag = true
+			if err, isErr := current.(env.Error); isErr {
+				err.CodeBlock = ps.Ser
+				ps.Res = err
+			} else {
+				ps.Res = current
+			}
+			return
+		}
+	}
+
+	ps.Res = current
 }
 
 // EvalObject evaluates a Rye object, particularly handling callable types (builtins, functions).
@@ -2555,7 +2610,7 @@ func tryHandleFailure(ps *env.ProgramState) bool {
 					return false // Handler may process the failure
 				}
 			}
-			return true // No handler available — convert to error
+			return true // No handler available - convert to error
 		}
 
 		// Inside a function: check if failure should be converted to error or propagated

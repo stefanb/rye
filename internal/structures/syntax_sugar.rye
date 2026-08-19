@@ -33,6 +33,24 @@ assert\display "l[] nested list" {
 	length? nested2
 } 2
 
+assert\display "l[] accepts boolean and decimal literals" {
+	length? l[ true 2.5 ]
+} 2
+
+assert\display "l[] rejects word value" {
+	w9: 'cascas
+	try { l[ w9 ] } |type?
+} 'error
+
+assert\display "l[] rejects context value" {
+	c9: context { x: 1 }
+	try { l[ c9 ] } |type?
+} 'error
+
+assert\display "l[] rejects function value" {
+	try { l[ fn { 1 } ] } |type?
+} 'error
+
 ; ============================================================================
 ; d{ } - Literal dict (no evaluation)
 ; ============================================================================
@@ -143,5 +161,67 @@ assert\display "context then dict cpath" {
 	}
 	ctx8/info/x
 } 10
+
+; ============================================================================
+; Error cases - non-literal values in passive/evaluated collections
+; ============================================================================
+; Passive list l{ } and passive dict d{ } reject non-literal values at parse
+; time (see internal/parsing/15-passive-collections.rye). The runtime
+; equivalents below must also report an error instead of silently dropping.
+
+assert\display "list { } rejects word value" {
+	try { list { some-word } } |type?
+} 'error
+
+assert\display "list { } rejects opword expression" {
+	try { list { 1 + 2 } } |type?
+} 'error
+
+assert\display "list { } rejects nested block" {
+	try { list { [ 1 2 ] } } |type?
+} 'error
+
+assert\display "dict { } rejects integer key" {
+	try { dict { 42 a } } |type?
+} 'error
+
+assert\display "dict { } rejects block key" {
+	try { dict { ( 1 ) a } } |type?
+} 'error
+
+assert\display "d[ ] rejects non-literal key" {
+	try { d[ 42 "a" ] } |type?
+} 'error
+
+assert\display "d[ ] rejects evaluated-list key" {
+	try { d[ l[ 1 2 ] "a" ] } |type?
+} 'error
+
+assert\display "d[ ] rejects word value" {
+	w10: 'cascas
+	try { d[ 'a w10 ] } |type?
+} 'error
+
+assert\display "d[ ] rejects context value" {
+	c10: context { x: 1 }
+	try { d[ 'a c10 ] } |type?
+} 'error
+
+assert\display "dict { } rejects word value" {
+	try { dict { a some-word } } |type?
+} 'error
+
+assert\display "dict { } rejects nil placeholder word" {
+	try { dict { "a" nil } } |type?
+} 'error
+
+; Controls: valid runtime collections still work
+assert\display "list { } of literals still works" {
+	first list { 1 2 3 }
+} 1
+
+assert\display "d[ ] with word key still works" {
+	( d[ 'items l[ 1 2 3 ] ] ) -> "items" |length?
+} 3
 
 print ""
