@@ -770,23 +770,20 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * boolean: true if path is a symbolic link
 	// Tags: #file #check
-	"is-symlink?": {
+	"is-symlink": {
 		Argsn: 1,
-		Doc:   "Checks if a path is a symbolic link.",
+		Doc:   "Checks if a path is a symbolic link. Fails if the path does not exist.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
 				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				info, err := os.Lstat(filePath) // Use Lstat to not follow symlinks
 				if err != nil {
-					if os.IsNotExist(err) {
-						return *env.NewBoolean(false)
-					}
-					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-symlink?")
+					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-symlink")
 				}
 				return *env.NewBoolean(info.Mode()&os.ModeSymlink != 0)
 			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-symlink?")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-symlink")
 			}
 		},
 	},

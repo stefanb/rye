@@ -353,18 +353,18 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { " " |is-space? } 1
-	// equal { "\t" |is-space? } 1
-	// equal { "\n" |is-space? } 1
-	// equal { "\r" |is-space? } 1
-	// equal { "a" |is-space? } 0
-	// equal { "A" |is-space? } 0
-	// equal { "1" |is-space? } 0
+	// equal { " " |is-space } true
+	// equal { "\t" |is-space } true
+	// equal { "\n" |is-space } true
+	// equal { "\r" |is-space } true
+	// equal { "a" |is-space } false
+	// equal { "A" |is-space } false
+	// equal { "1" |is-space } false
 	// Args:
 	// * input: string to check (should be single character)
 	// Returns:
-	// * integer 1 if character is whitespace, 0 otherwise
-	"is-space?": {
+	// * boolean true if character is whitespace, false otherwise
+	"is-space": {
 		Argsn: 1,
 		Doc:   "Checks if a single character string is a whitespace character.",
 		Pure:  true,
@@ -372,19 +372,16 @@ var Builtins_encoding = map[string]*env.Builtin{
 			switch str := arg0.(type) {
 			case env.String:
 				if len(str.Value) == 0 {
-					return *env.NewInteger(0)
+					return *env.NewBoolean(false)
 				}
 				// Check first rune of the string
 				for _, r := range str.Value {
-					if unicode.IsSpace(r) {
-						return *env.NewInteger(1)
-					}
-					return *env.NewInteger(0)
+					return *env.NewBoolean(unicode.IsSpace(r))
 				}
-				return *env.NewInteger(0)
+				return *env.NewBoolean(false)
 			default:
 				ps.FailureFlag = true
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "is-space?")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "is-space")
 			}
 		},
 	},
