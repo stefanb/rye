@@ -12,7 +12,7 @@ import (
 // Error Creation Functions
 var ErrorCreationBuiltins = map[string]*env.Builtin{
 	//
-	// ##### Failure ###### "Handling failures"
+	// ##### Failure ##### "Handling failures"
 	//
 	// Tests:
 	// equal { try { fail "error message" } |type? } 'error
@@ -794,8 +794,8 @@ var ErrorHandlingBuiltins = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { fix\\either failure "error" { "fixed" } { "not fixed" } } "fixed"
-	// equal { fix\\either 5 { "fixed" } { "not fixed" } } "not fixed"
+	// equal { fix\either failure "error" { "fixed" } { "not fixed" } } "fixed"
+	// equal { fix\either 5 { "fixed" } { "not fixed" } } "not fixed"
 	// Args:
 	// * value: Value to check for failure state
 	// * error_handler: Block to execute if value is in failure state
@@ -840,8 +840,8 @@ var ErrorHandlingBuiltins = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { 5 |fix\\else { "not fixed" } } "not fixed"
-	// equal { try { fail "error" |fix\\else { "not fixed" } } |message? } "error"
+	// equal { 5 |fix\else { "not fixed" } } "not fixed"
+	// equal { try { fail "error" |fix\else { "not fixed" } } |message? } "error"
 	// Args:
 	// * value: Value to check for failure state
 	// * success_handler: Block to execute if value is not in failure state
@@ -874,8 +874,8 @@ var ErrorHandlingBuiltins = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { 5 |fix\\continue { "error handler" } { "success handler" } } "success handler"
-	// equal { try { fail "error" |fix\\continue { "error handler" } { "success handler" } } } "error handler"
+	// equal { 5 |fix\continue { "error handler" } { "success handler" } } "success handler"
+	// equal { try { fail "error" |fix\continue { "error handler" } { "success handler" } } } "error handler"
 	// Args:
 	// * value: Value to check for failure state
 	// * error_handler: Block to execute if value is in failure state
@@ -953,9 +953,9 @@ var ErrorHandlingBuiltins = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { ^fix\\match failure 404 { 404 { "Not Found" } 500 { "Server Error" } } } "Not Found"
-	// equal { ^fix\\match failure 500 { 404 { "Not Found" } 500 { "Server Error" } } } "Server Error"
-	// equal { ^fix\\match failure 403 { 404 { "Not Found" } 500 { "Server Error" } _ { "Unknown Error" } } } "Unknown Error"
+	// equal { ^fix\match failure 404 { 404 { "Not Found" } 500 { "Server Error" } } } "Not Found"
+	// equal { ^fix\match failure 500 { 404 { "Not Found" } 500 { "Server Error" } } } "Server Error"
+	// equal { ^fix\match failure 403 { 404 { "Not Found" } 500 { "Server Error" } _ { "Unknown Error" } } } "Unknown Error"
 	// Args:
 	// * error: Error object to match against
 	// * cases: Block containing error codes and corresponding handler blocks

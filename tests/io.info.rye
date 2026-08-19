@@ -1149,7 +1149,7 @@ db .Exec { INSERT INTO users ( name , age ) VALUES ( ?name , 42 ) }
 
 	{
 		equal { Open sqlite://test.db |Query "SELECT * FROM test" |type? } 'table
-		Also supports: db .Query { "SELECT * FROM test WHERE id = ?" 123 }
+		; Also supports: db .Query { "SELECT * FROM test WHERE id = ?" 123 }
 	}
 
 	{

@@ -124,7 +124,7 @@ var Builtins_sqlite = map[string]*env.Builtin{
 
 	// Tests:
 	// equal { Open sqlite://test.db |Query "SELECT * FROM test" |type? } 'table
-	// Also supports: db .Query { "SELECT * FROM test WHERE id = ?" 123 }
+	// ; Also supports: db .Query { "SELECT * FROM test WHERE id = ?" 123 }
 	// Args:
 	// * db: SQLite database connection
 	// * sql: SQL query as string, SQL-DSL block, or a block where first value is SQL string and the rest are parameters
