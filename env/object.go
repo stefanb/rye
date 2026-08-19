@@ -2636,6 +2636,40 @@ func NewDictFromSeries(block TSeries, idx *Idxs) Dict {
 	return Dict{data, Word{0, false}}
 }
 
+// IsDictKey reports whether the object is a valid passive-dict (d{ }) key:
+// strings, tagwords, words and setwords.
+func IsDictKey(obj Object) bool {
+	switch obj.(type) {
+	case String, Tagword, Word, Setword:
+		return true
+	}
+	return false
+}
+
+// NewDictFromSeriesChecked is like NewDictFromSeries but returns an error for
+// invalid keys instead of silently dropping the whole key/value pair.
+func NewDictFromSeriesChecked(block TSeries, idx *Idxs) (Dict, error) {
+	data := make(map[string]any)
+	for block.Pos() < block.Len() {
+		pos := block.Pos()
+		key := block.Pop()
+		val := block.Pop()
+		switch k := key.(type) {
+		case String:
+			data[k.Value] = val
+		case Tagword:
+			data[idx.GetWord(k.Index)] = val
+		case Word:
+			data[idx.GetWord(k.Index)] = val
+		case Setword:
+			data[idx.GetWord(k.Index)] = val
+		default:
+			return Dict{}, fmt.Errorf("invalid key %s in passive dict (d{ }) at position %d; keys must be strings, tagwords, words, or setwords", key.Inspect(*idx), pos)
+		}
+	}
+	return Dict{data, Word{0, false}}, nil
+}
+
 func (i Dict) Type() Type {
 	return DictType
 }
