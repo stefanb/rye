@@ -14,7 +14,8 @@
 ../cmd/rbit/rbit ../evaldo/builtins_base_combinators.go >> base.info.rye
 ../cmd/rbit/rbit ../evaldo/builtins_base_printing_not.go >> base.info.rye
 ../cmd/rbit/rbit ../baseio/builtins_printing.go >> base.info.rye
-../cmd/rbit/rbit ../batteries/builtins_error_handling.go >> base.info.rye
+../cmd/rbit/rbit ../evaldo/builtins_error_handling.go >> base.info.rye
+../cmd/rbit/rbit ../evaldo/builtins_base_mth.go >> base.info.rye
 ../cmd/rbit/rbit ../evaldo/builtins_table.go > table.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_regexp.go > formats.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_json.go >> formats.info.rye 
@@ -23,6 +24,7 @@
 ../cmd/rbit/rbit ../batteries/builtins_html.go >> formats.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_markdown.go >> formats.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_conversion.go >> formats.info.rye
+../cmd/rbit/rbit ../batteries/builtins_encoding.go >> formats.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_io.go > io.info.rye
 ../cmd/rbit/rbit ../baseio/builtins_baseio.go >> io.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_cmd.go >> io.info.rye
@@ -47,5 +49,5 @@
 ../cmd/rbit/rbit ../batteries/builtins_goroutines.go >> system.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_complex.go >> dialects.info.rye
 ../cmd/rbit/rbit ../batteries/builtins_pipes.go > pipes.info.rye
-# ../cmd/rbit/rbit ../batteries/builtins_structures.go >> formats.info.rye
-# ../cmd/rbit/rbit ../batteries/builtins_web.go > web.info.rye
+../cmd/rbit/rbit ../batteries/builtins_structures.go >> formats.info.rye
+../cmd/rbit/rbit ../batteries/builtins_web.go > web.info.rye

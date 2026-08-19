@@ -665,7 +665,6 @@ var Builtins_structures = map[string]*env.Builtin{
 	//
 	// ##### Structures ##### "Functions for converting between Rye and Go data structures"
 	//
-
 	// Example: dict [ "name" "John" "age" 30 ] |dict->struct my-struct-ptr
 	// Args:
 	// * dict: Rye Dict containing field names and values

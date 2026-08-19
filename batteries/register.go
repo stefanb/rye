@@ -66,7 +66,7 @@ func RegisterBatteries(ps *env.ProgramState) {
 	evaldo.RegisterBuiltins2(Builtins_bcrypt, ps, "bcrypt")
 	evaldo.RegisterBuiltins2(Builtins_console, ps, "console")
 	evaldo.RegisterBuiltinsInContext(Builtins_crypto, ps, "crypto")
-	evaldo.RegisterBuiltinsInContext(Builtins_encoding, ps, "encoding")
+	evaldo.RegisterBuiltins2(Builtins_encoding, ps, "encoding")
 	evaldo.RegisterBuiltinsInContext(Builtins_math, ps, "math")
 	evaldo.RegisterBuiltinsInContext(Builtins_os, ps, "os")
 	evaldo.RegisterBuiltinsInContext(Builtins_pipes, ps, "pipes")

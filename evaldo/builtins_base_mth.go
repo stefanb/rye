@@ -398,6 +398,9 @@ func Mth_EvalDirect(ps *env.ProgramState) env.Object {
 // ---------------------------------------------------------------------------
 
 var builtins_mth = map[string]*env.Builtin{
+	//
+	// ##### Fast Math ##### "Fast infix math evaluator"
+	//
 	// Tests:
 	// equal { mth { 1 + 2 } } 3
 	// equal { mth { 2 + 3 * 4 } } 14

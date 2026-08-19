@@ -19,9 +19,9 @@ var Builtins_encoding = map[string]*env.Builtin{
 	//
 
 	// Tests:
-	// equal { "48656c6c6f20576f726c64" |hex\\decode-string } "Hello World"
-	// equal { "48656c6c6f20576f726c64" |hex\\decode-string |type? } 'string
-	// equal { "invalid" |hex\\decode-string |disarm |type? } 'error
+	// equal { "48656c6c6f20576f726c64" |decode\hex-string } "Hello World"
+	// equal { "48656c6c6f20576f726c64" |decode\hex-string |type? } 'string
+	// equal { "invalid" |decode\hex-string |disarm |type? } 'error
 	// Args:
 	// * hex-string: hexadecimal string to decode
 	// Returns:
@@ -36,20 +36,20 @@ var Builtins_encoding = map[string]*env.Builtin{
 				decoded, err := hex.DecodeString(hexStr.Value)
 				if err != nil {
 					ps.FailureFlag = true
-					return evaldo.MakeBuiltinError(ps, "Failed to decode hex string: "+err.Error(), "hex\\decode-string")
+					return evaldo.MakeBuiltinError(ps, "Failed to decode hex string: "+err.Error(), "decode\\hex-string")
 				}
 				return *env.NewString(string(decoded))
 			default:
 				ps.FailureFlag = true
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "hex\\decode-string")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "decode\\hex-string")
 			}
 		},
 	},
 
 	// Tests:
-	// equal { "Hello World" |hex\\encode-string } "48656c6c6f20576f726c64"
-	// equal { "Hello World" |hex\\encode-string |type? } 'string
-	// equal { "" |hex\\encode-string } ""
+	// equal { "Hello World" |encode\hex-string } "48656c6c6f20576f726c64"
+	// equal { "Hello World" |encode\hex-string |type? } 'string
+	// equal { "" |encode\hex-string } ""
 	// Args:
 	// * string: string to encode
 	// Returns:
@@ -65,15 +65,15 @@ var Builtins_encoding = map[string]*env.Builtin{
 				return *env.NewString(encoded)
 			default:
 				ps.FailureFlag = true
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "hex\\encode-string")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "encode\\hex-string")
 			}
 		},
 	},
 
 	// Tests:
-	// equal { "  70 44 01 4b  \n  55 50 4e 51  " |hex\\clean-string } "7044014b55504e51"
-	// equal { "70 44 01 4b\t55 50 4e 51\r\n52 0a" |hex\\clean-string } "7044014b55504e51520a"
-	// equal { "7044014b55504e51520a" |hex\\clean-string } "7044014b55504e51520a"
+	// equal { "  70 44 01 4b  \n  55 50 4e 51  " |clean\hex-string } "7044014b55504e51"
+	// equal { "70 44 01 4b\t55 50 4e 51\r\n52 0a" |clean\hex-string } "7044014b55504e51520a"
+	// equal { "7044014b55504e51520a" |clean\hex-string } "7044014b55504e51520a"
 	// Args:
 	// * hex-string: raw hex string with possible whitespace
 	// Returns:
@@ -100,14 +100,14 @@ var Builtins_encoding = map[string]*env.Builtin{
 				return *env.NewString(result)
 			default:
 				ps.FailureFlag = true
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "hex\\clean-string")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "clean\\hex-string")
 			}
 		},
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1250 |type? } 'native
-	// equal { charmap\\windows-1250 |kind? } 'charmap-encoding
+	// equal { charmap\windows-1250 |type? } 'native
+	// equal { charmap\windows-1250 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -122,8 +122,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\iso-8859-1 |type? } 'native
-	// equal { charmap\\iso-8859-1 |kind? } 'charmap-encoding
+	// equal { charmap\iso-8859-1 |type? } 'native
+	// equal { charmap\iso-8859-1 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -138,8 +138,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\iso-8859-2 |type? } 'native
-	// equal { charmap\\iso-8859-2 |kind? } 'charmap-encoding
+	// equal { charmap\iso-8859-2 |type? } 'native
+	// equal { charmap\iso-8859-2 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -154,8 +154,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1252 |type? } 'native
-	// equal { charmap\\windows-1252 |kind? } 'charmap-encoding
+	// equal { charmap\windows-1252 |type? } 'native
+	// equal { charmap\windows-1252 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -170,8 +170,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\code-page-437 |type? } 'native
-	// equal { charmap\\code-page-437 |kind? } 'charmap-encoding
+	// equal { charmap\code-page-437 |type? } 'native
+	// equal { charmap\code-page-437 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -186,8 +186,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\code-page-850 |type? } 'native
-	// equal { charmap\\code-page-850 |kind? } 'charmap-encoding
+	// equal { charmap\code-page-850 |type? } 'native
+	// equal { charmap\code-page-850 |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -202,8 +202,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\koi8r |type? } 'native
-	// equal { charmap\\koi8r |kind? } 'charmap-encoding
+	// equal { charmap\koi8r |type? } 'native
+	// equal { charmap\koi8r |kind? } 'charmap-encoding
 	// Args:
 	// * none
 	// Returns:
@@ -218,8 +218,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-decoder |type? } 'native
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-decoder |kind? } 'text-decoder
+	// equal { charmap\windows-1250 |Decoder |type? } 'native
+	// equal { charmap\windows-1250 |Decoder |kind? } 'text-decoder
 	// Args:
 	// * encoding: charmap encoding as a native value
 	// Returns:
@@ -246,8 +246,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-encoder |type? } 'native
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-encoder |kind? } 'text-encoder
+	// equal { charmap\windows-1250 |Encoder |type? } 'native
+	// equal { charmap\windows-1250 |Encoder |kind? } 'text-encoder
 	// Args:
 	// * encoding: charmap encoding as a native value
 	// Returns:
@@ -274,9 +274,9 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-decoder "Plačilo računa" |text-decoder\\string |contains? "č" } 1
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-decoder "Hello" |text-decoder\\string } "Hello"
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-decoder "" |text-decoder\\string } ""
+	// equal { charmap\windows-1250 |Decoder |Decode "Plačilo računa" |contains? "č" } 1
+	// equal { charmap\windows-1250 |Decoder |Decode "Hello" } "Hello"
+	// equal { charmap\windows-1250 |Decoder |Decode "" } ""
 	// Args:
 	// * decoder: text decoder as a native value
 	// * input: string to decode
@@ -314,8 +314,8 @@ var Builtins_encoding = map[string]*env.Builtin{
 	},
 
 	// Tests:
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-encoder "Hello" |text-encoder\\string } "Hello"
-	// equal { charmap\\windows-1250 |charmap-encoding\\new-encoder "Plačilo" |text-encoder\\string |hex\\encode-string } "506c61e8696c6f"
+	// equal { charmap\windows-1250 |Encoder |Encode "Hello" } "Hello"
+	// equal { charmap\windows-1250 |Encoder |Encode "Plačilo" |encode\hex-string } "506c61e8696c6f"
 	// Args:
 	// * encoder: text encoder as a native value
 	// * input: string to encode
