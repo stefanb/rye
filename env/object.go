@@ -2647,25 +2647,30 @@ func IsDictKey(obj Object) bool {
 }
 
 // NewDictFromSeriesChecked is like NewDictFromSeries but returns an error for
-// invalid keys instead of silently dropping the whole key/value pair.
+// invalid keys or non-literal values instead of silently dropping them.
 func NewDictFromSeriesChecked(block TSeries, idx *Idxs) (Dict, error) {
 	data := make(map[string]any)
 	for block.Pos() < block.Len() {
 		pos := block.Pos()
 		key := block.Pop()
 		val := block.Pop()
+		var keyStr string
 		switch k := key.(type) {
 		case String:
-			data[k.Value] = val
+			keyStr = k.Value
 		case Tagword:
-			data[idx.GetWord(k.Index)] = val
+			keyStr = idx.GetWord(k.Index)
 		case Word:
-			data[idx.GetWord(k.Index)] = val
+			keyStr = idx.GetWord(k.Index)
 		case Setword:
-			data[idx.GetWord(k.Index)] = val
+			keyStr = idx.GetWord(k.Index)
 		default:
 			return Dict{}, fmt.Errorf("invalid key %s at position %d; keys must be strings, tagwords, words, or setwords", key.Inspect(*idx), pos)
 		}
+		if val != nil && !IsCollectionLiteral(val) {
+			return Dict{}, fmt.Errorf("non-literal value %s at position %d; only literal values (strings, numbers, nested lists and dicts) are allowed", val.Inspect(*idx), pos+1)
+		}
+		data[keyStr] = val
 	}
 	return Dict{data, Word{0, false}}, nil
 }
@@ -2852,9 +2857,9 @@ func NewListFromSeries(block TSeries) List {
 	return *NewList(data)
 }
 
-// IsListLiteralValue reports whether the object is a literal value that can be
-// embedded in a passive list (l{ }): scalars plus nested lists and dicts.
-func IsListLiteralValue(obj Object) bool {
+// IsCollectionLiteral reports whether the object is a literal value that can be
+// stored in a passive or evaluated list/dict: scalars plus nested lists/dicts.
+func IsCollectionLiteral(obj Object) bool {
 	switch obj.(type) {
 	case String, Integer, Decimal, Boolean, List, Dict:
 		return true

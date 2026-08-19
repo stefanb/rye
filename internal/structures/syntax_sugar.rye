@@ -197,6 +197,24 @@ assert\display "d[ ] rejects evaluated-list key" {
 	try { d[ l[ 1 2 ] "a" ] } |type?
 } 'error
 
+assert\display "d[ ] rejects word value" {
+	w10: 'cascas
+	try { d[ 'a w10 ] } |type?
+} 'error
+
+assert\display "d[ ] rejects context value" {
+	c10: context { x: 1 }
+	try { d[ 'a c10 ] } |type?
+} 'error
+
+assert\display "dict { } rejects word value" {
+	try { dict { a some-word } } |type?
+} 'error
+
+assert\display "dict { } rejects nil placeholder word" {
+	try { dict { "a" nil } } |type?
+} 'error
+
 ; Controls: valid runtime collections still work
 assert\display "list { } of literals still works" {
 	first list { 1 2 3 }

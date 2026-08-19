@@ -616,7 +616,7 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 					ps.Ser = ser
 					return
 				}
-				if !env.IsListLiteralValue(ps.Res) {
+				if !env.IsCollectionLiteral(ps.Res) {
 					ps.ErrorFlag = true
 					ps.Res = env.NewError(fmt.Sprintf("non-literal value %s in evaluated list l[ ]; only literal values (strings, numbers, nested lists and dicts) are allowed", ps.Res.Inspect(*ps.Idx)))
 					ps.Ser = ser

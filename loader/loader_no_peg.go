@@ -1618,7 +1618,7 @@ func (p *NoPEGParser) parseBlock(blockType int) (env.Object, error) {
 		// Passive list l{ } and passive dict d{ } only accept literal values.
 		// Report a clear error instead of silently dropping anything else.
 		if obj != nil {
-			if blockType == 6 && !env.IsListLiteralValue(obj) {
+			if blockType == 6 && !env.IsCollectionLiteral(obj) {
 				p.l.line = objLine
 				p.l.col = objCol
 				return nil, fmt.Errorf("non-literal value %s in passive list l{ }; only literal values (strings, numbers, nested lists and dicts) are allowed", obj.Inspect(*p.wordIndex))
@@ -1627,6 +1627,11 @@ func (p *NoPEGParser) parseBlock(blockType int) (env.Object, error) {
 				p.l.line = objLine
 				p.l.col = objCol
 				return nil, fmt.Errorf("invalid key %s in passive dict d{ }; keys must be strings, tagwords, words, or setwords", obj.Inspect(*p.wordIndex))
+			}
+			if blockType == 8 && len(objects)%2 == 1 && !env.IsCollectionLiteral(obj) {
+				p.l.line = objLine
+				p.l.col = objCol
+				return nil, fmt.Errorf("non-literal value %s in passive dict d{ }; only literal values (strings, numbers, nested lists and dicts) are allowed", obj.Inspect(*p.wordIndex))
 			}
 		}
 
