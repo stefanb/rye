@@ -33,6 +33,24 @@ assert\display "l[] nested list" {
 	length? nested2
 } 2
 
+assert\display "l[] accepts boolean and decimal literals" {
+	length? l[ true 2.5 ]
+} 2
+
+assert\display "l[] rejects word value" {
+	w9: 'cascas
+	try { l[ w9 ] } |type?
+} 'error
+
+assert\display "l[] rejects context value" {
+	c9: context { x: 1 }
+	try { l[ c9 ] } |type?
+} 'error
+
+assert\display "l[] rejects function value" {
+	try { l[ fn { 1 } ] } |type?
+} 'error
+
 ; ============================================================================
 ; d{ } - Literal dict (no evaluation)
 ; ============================================================================
