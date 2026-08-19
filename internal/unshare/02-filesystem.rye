@@ -12,35 +12,35 @@
 print "=== Filesystem isolation test ==="
 
 ; Check /home
-either os/is-dir? %/home {
+either os/does-exist %/home {
     print "  /home  : VISIBLE   (isolation NOT active or -unshare-fs=false)"
 } {
     print "  /home  : INVISIBLE (isolation OK)"
 }
 
 ; Check /etc
-either os/is-dir? %/etc {
+either os/does-exist %/etc {
     print "  /etc   : VISIBLE   (isolation NOT active or -unshare-fs=false)"
 } {
     print "  /etc   : INVISIBLE (isolation OK)"
 }
 
 ; Check /proc
-either os/is-dir? %/proc {
+either os/does-exist %/proc {
     print "  /proc  : VISIBLE   (isolation NOT active or -unshare-fs=false)"
 } {
     print "  /proc  : INVISIBLE (isolation OK)"
 }
 
 ; CWD (.) must always be visible - our script is here
-either os/is-dir? %. {
+either os/does-exist %. {
     print "  .      : VISIBLE   (CWD OK)"
 } {
     print "  .      : INVISIBLE (ERROR: cannot see own directory!)"
 }
 
 ; The script file itself must be readable
-either os/is-file? %02-filesystem.rye {
+either os/does-exist %02-filesystem.rye {
     print "  script : READABLE  (CWD bind-mount OK)"
 } {
     print "  script : NOT FOUND (ERROR: script file missing!)"

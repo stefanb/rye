@@ -28,6 +28,7 @@ test-folders: {
 	"loops"
 	"recursion"
 	"context_advanced"
+	"batteries"
 }
 
 ; Track results
