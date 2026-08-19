@@ -91,7 +91,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				filePath := filepath.Join(ps.WorkingPath, path.GetPath())
+				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				res := FileExists(filePath)
 				if res == -1 {
 					return evaldo.MakeBuiltinError(ps, "Error checking if path exists: "+filePath, "does-exists")
@@ -161,7 +161,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				newDir := filepath.Join(ps.WorkingPath, path.GetPath())
+				newDir := resolvePath(ps.WorkingPath, path.GetPath())
 				/*fmt.Println("-----------------------------")
 				fmt.Println(filepath.Dir(ps.WorkingPath))
 				fmt.Println(ps.WorkingPath)
@@ -206,7 +206,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				filePath := filepath.Join(ps.WorkingPath, path.GetPath())
+				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				err := os.Remove(filePath)
 				if err != nil {
 					return evaldo.MakeBuiltinError(ps, "Error removing file: "+err.Error(), "rm")
@@ -229,7 +229,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				dirPath := filepath.Join(ps.WorkingPath, path.GetPath())
+				dirPath := resolvePath(ps.WorkingPath, path.GetPath())
 				err := os.RemoveAll(dirPath)
 				if err != nil {
 					return evaldo.MakeBuiltinError(ps, "Error removing directory: "+err.Error(), "rmdir")
@@ -255,8 +255,8 @@ var Builtins_os = map[string]*env.Builtin{
 			case env.Uri:
 				switch dst := arg1.(type) {
 				case env.Uri:
-					srcPath := filepath.Join(ps.WorkingPath, src.GetPath())
-					dstPath := filepath.Join(ps.WorkingPath, dst.GetPath())
+					srcPath := resolvePath(ps.WorkingPath, src.GetPath())
+					dstPath := resolvePath(ps.WorkingPath, dst.GetPath())
 
 					// Read source file
 					data, err := os.ReadFile(srcPath)
@@ -296,7 +296,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				filePath := filepath.Join(ps.WorkingPath, path.GetPath())
+				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				info, err := os.Stat(filePath)
 				if err != nil {
 					return evaldo.MakeBuiltinError(ps, "Error getting file info: "+err.Error(), "file-info?")
@@ -317,25 +317,22 @@ var Builtins_os = map[string]*env.Builtin{
 	// Args:
 	// * path: uri representing the path to check
 	// Returns:
-	// * boolean: true if path is a directory, false otherwise
+	// * boolean: true if path is a directory, false otherwise. Fails if the path does not exist.
 	// Tags: #file #check
-	"is-dir?": {
+	"is-dir": {
 		Argsn: 1,
-		Doc:   "Checks if a path is a directory.",
+		Doc:   "Checks if a path is a directory. Fails if the path does not exist.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				filePath := filepath.Join(ps.WorkingPath, path.GetPath())
+				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				info, err := os.Stat(filePath)
 				if err != nil {
-					if os.IsNotExist(err) {
-						return *env.NewBoolean(false)
-					}
-					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-dir?")
+					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-dir")
 				}
 				return *env.NewBoolean(info.IsDir())
 			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-dir?")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-dir")
 			}
 		},
 	},
@@ -343,25 +340,22 @@ var Builtins_os = map[string]*env.Builtin{
 	// Args:
 	// * path: uri representing the path to check
 	// Returns:
-	// * boolean: true if path is a regular file, false otherwise
+	// * boolean: true if path is a regular file, false otherwise. Fails if the path does not exist.
 	// Tags: #file #check
-	"is-file?": {
+	"is-file": {
 		Argsn: 1,
-		Doc:   "Checks if a path is a regular file (not a directory).",
+		Doc:   "Checks if a path is a regular file (not a directory). Fails if the path does not exist.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
-				filePath := filepath.Join(ps.WorkingPath, path.GetPath())
+				filePath := resolvePath(ps.WorkingPath, path.GetPath())
 				info, err := os.Stat(filePath)
 				if err != nil {
-					if os.IsNotExist(err) {
-						return *env.NewBoolean(false)
-					}
-					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-file?")
+					return evaldo.MakeBuiltinError(ps, "Error checking path: "+err.Error(), "is-file")
 				}
 				return *env.NewBoolean(info.Mode().IsRegular())
 			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-file?")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "is-file")
 			}
 		},
 	},
@@ -408,7 +402,7 @@ var Builtins_os = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch pattern := arg0.(type) {
 			case env.String:
-				patternPath := filepath.Join(ps.WorkingPath, pattern.Value)
+				patternPath := resolvePath(ps.WorkingPath, pattern.Value)
 				matches, err := filepath.Glob(patternPath)
 				if err != nil {
 					return evaldo.MakeBuiltinError(ps, "Error in glob pattern: "+err.Error(), "glob")
@@ -437,8 +431,8 @@ var Builtins_os = map[string]*env.Builtin{
 			case env.Uri:
 				switch dst := arg1.(type) {
 				case env.Uri:
-					oldPath := filepath.Join(ps.WorkingPath, src.GetPath())
-					newPath := filepath.Join(ps.WorkingPath, dst.GetPath())
+					oldPath := resolvePath(ps.WorkingPath, src.GetPath())
+					newPath := resolvePath(ps.WorkingPath, dst.GetPath())
 					err := os.Rename(oldPath, newPath)
 					if err != nil {
 						return evaldo.MakeBuiltinError(ps, "Error moving file: "+err.Error(), "mv")
