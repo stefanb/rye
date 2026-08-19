@@ -1602,12 +1602,32 @@ func (p *NoPEGParser) parseBlock(blockType int) (env.Object, error) {
 			return nil, fmt.Errorf("%s", errMsg)
 		}
 
+		// Capture the position of the token about to be parsed, so nested
+		// block parsing doesn't shift the reported location.
+		objLine := p.currentToken.Line
+		objCol := p.currentToken.Col
+
 		// Parse the current token
 		obj, err := p.parseToken()
 		if err != nil {
 			// fmt.Println("= PARSE BLOCK ERROR DETECTED IN LOOP====>")
 			// fmt.Println(p.l.pos)
 			return nil, err
+		}
+
+		// Passive list l{ } and passive dict d{ } only accept literal values.
+		// Report a clear error instead of silently dropping anything else.
+		if obj != nil {
+			if blockType == 6 && !env.IsListLiteralValue(obj) {
+				p.l.line = objLine
+				p.l.col = objCol
+				return nil, fmt.Errorf("non-literal value %s in passive list l{ }; only literal values (strings, numbers, nested lists and dicts) are allowed", obj.Inspect(*p.wordIndex))
+			}
+			if blockType == 8 && len(objects)%2 == 0 && !env.IsDictKey(obj) {
+				p.l.line = objLine
+				p.l.col = objCol
+				return nil, fmt.Errorf("invalid key %s in passive dict d{ }; keys must be strings, tagwords, words, or setwords", obj.Inspect(*p.wordIndex))
+			}
 		}
 
 		// Skip comments and location nodes (we no longer add them to blocks)

@@ -1635,7 +1635,11 @@ var builtins = map[string]*env.Builtin{
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch bloc := arg0.(type) {
 			case env.Block:
-				return env.NewListFromSeries(bloc.Series)
+				list, err := env.NewListFromSeriesChecked(bloc.Series, ps.Idx)
+				if err != nil {
+					return MakeBuiltinError(ps, err.Error(), "list")
+				}
+				return list
 			}
 			return nil
 		},

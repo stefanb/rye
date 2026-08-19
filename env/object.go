@@ -2664,7 +2664,7 @@ func NewDictFromSeriesChecked(block TSeries, idx *Idxs) (Dict, error) {
 		case Setword:
 			data[idx.GetWord(k.Index)] = val
 		default:
-			return Dict{}, fmt.Errorf("invalid key %s in passive dict (d{ }) at position %d; keys must be strings, tagwords, words, or setwords", key.Inspect(*idx), pos)
+			return Dict{}, fmt.Errorf("invalid key %s at position %d; keys must be strings, tagwords, words, or setwords", key.Inspect(*idx), pos)
 		}
 	}
 	return Dict{data, Word{0, false}}, nil
@@ -2850,6 +2850,43 @@ func NewListFromSeries(block TSeries) List {
 		}
 	}
 	return *NewList(data)
+}
+
+// IsListLiteralValue reports whether the object is a literal value that can be
+// embedded in a passive list (l{ }): scalars plus nested lists and dicts.
+func IsListLiteralValue(obj Object) bool {
+	switch obj.(type) {
+	case String, Integer, Decimal, Boolean, List, Dict:
+		return true
+	}
+	return false
+}
+
+// NewListFromSeriesChecked is like NewListFromSeries but returns an error for
+// non-literal values instead of silently dropping them (leaving nil entries).
+func NewListFromSeriesChecked(block TSeries, idx *Idxs) (List, error) {
+	data := make([]any, block.Len())
+	for block.Pos() < block.Len() {
+		i := block.Pos()
+		k1 := block.Pop() // TODO -- USE RyeToRaw
+		switch k := k1.(type) {
+		case String:
+			data[i] = k.Value
+		case Integer:
+			data[i] = k.Value
+		case Decimal:
+			data[i] = k.Value
+		case Boolean:
+			data[i] = k.Value
+		case List:
+			data[i] = k
+		case Dict:
+			data[i] = k
+		default:
+			return List{}, fmt.Errorf("non-literal value %s at position %d; only literal values (strings, numbers, nested lists and dicts) are allowed", k1.Inspect(*idx), i)
+		}
+	}
+	return *NewList(data), nil
 }
 
 func NewBlockFromList(list List) TSeries {

@@ -635,7 +635,13 @@ func EvalExpression_DispatchType(ps *env.ProgramState) {
 				res = append(res, ps.Res)
 			}
 			ps.Ser = ser
-			ps.Res = env.NewDictFromSeries(*env.NewTSeries(res), ps.Idx)
+			dict, err := env.NewDictFromSeriesChecked(*env.NewTSeries(res), ps.Idx)
+			if err != nil {
+				ps.ErrorFlag = true
+				ps.Res = env.NewError(err.Error())
+				return
+			}
+			ps.Res = dict
 		}
 	// specific word types 'tagword is the lit-word
 	case env.TagwordType:
