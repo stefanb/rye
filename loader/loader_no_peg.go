@@ -345,21 +345,37 @@ func (l *Lexer) NextToken() NoPEGToken {
 	case '(':
 		// Check if this is a paren-word like (word) or just a group delimiter
 		if isLetter(l.peekChar()) {
-			// This is the start of a paren-word like (word)
-			word := l.readWord()
+			// This is the start of a paren-word like (word), (word:), (word/word).
+			// The surrounding parentheses are delimiters and must not become part
+			// of the produced token.
+			l.readChar()   // Skip opening '('
+			l.startToken() // token starts after '('
+
+			// Read the word body (word characters, but stop before the closing ')')
+			for isWordCharacter(l.ch) && l.ch != ')' {
+				l.readChar()
+			}
 
 			// Check if it's a set-word (word:)
 			if l.ch == ':' {
 				if l.peekChar() == ':' { // word::
-					if isWhitespaceOrEOF(l.peekCharOffs(1)) {
+					if isWhitespaceOrEOF(l.peekCharOffs(1)) || l.peekCharOffs(1) == ')' {
 						l.readChar()
 						l.readChar()
-						return l.makeToken(NPEG_TOKEN_MODWORD, l.input[l.tokenStart:l.pos])
+						end := l.pos
+						if l.ch == ')' {
+							l.readChar()
+						}
+						return l.makeToken(NPEG_TOKEN_MODWORD, l.input[l.tokenStart:end])
 					}
 				}
-				if isWhitespaceOrEOF(l.peekChar()) {
+				if isWhitespaceOrEOF(l.peekChar()) || l.peekChar() == ')' {
 					l.readChar()
-					return l.makeToken(NPEG_TOKEN_SETWORD, l.input[l.tokenStart:l.pos])
+					end := l.pos
+					if l.ch == ')' {
+						l.readChar()
+					}
+					return l.makeToken(NPEG_TOKEN_SETWORD, l.input[l.tokenStart:end])
 				}
 			}
 
@@ -368,14 +384,24 @@ func (l *Lexer) NextToken() NoPEGToken {
 				l.readChar()
 
 				// Read the rest of the path (can have multiple parts like one/two/three)
-				for isWordCharacter(l.ch) || l.ch == '/' {
+				for (isWordCharacter(l.ch) || l.ch == '/' || l.ch == '@') && l.ch != ')' {
 					l.readChar()
 				}
 
-				return l.makeToken(NPEG_TOKEN_CPATH, l.input[l.tokenStart:l.pos])
+				end := l.pos
+				if l.ch == ')' {
+					l.readChar()
+				}
+
+				return l.makeToken(NPEG_TOKEN_CPATH, l.input[l.tokenStart:end])
 			}
 
-			return word
+			// Plain word (word)
+			end := l.pos
+			if l.ch == ')' {
+				l.readChar()
+			}
+			return l.makeToken(NPEG_TOKEN_WORD, l.input[l.tokenStart:end])
 		}
 		return l.readOneCharToken(NPEG_TOKEN_GROUP_START, ERR_SPACING_BLK)
 	case ')':
@@ -674,8 +700,9 @@ func (l *Lexer) NextToken() NoPEGToken {
 			if l.ch == '/' {
 				l.readChar()
 
-				// Read the rest of the path (can have multiple parts like one/two/three)
-				for isWordCharacter(l.ch) || l.ch == '/' {
+				// Read the rest of the path (can have multiple parts like one/two/three,
+				// and @ for parent-context navigation like word/@/word)
+				for isWordCharacter(l.ch) || l.ch == '/' || l.ch == '@' {
 					l.readChar()
 				}
 
@@ -863,7 +890,9 @@ func (l *Lexer) readWord() NoPEGToken {
 
 	// Consume a trailing '/' as part of the word when it's not followed by a word character
 	// (e.g. _/ should be a single WORD, not split into _ followed by /)
-	if l.ch == '/' && !isWordCharacter(l.peekChar()) {
+	// Except when followed by '@': word/@/word is a context path with parent navigation,
+	// so the '/' must be left for the cpath detection in the caller.
+	if l.ch == '/' && !isWordCharacter(l.peekChar()) && l.peekChar() != '@' {
 		l.readChar()
 	}
 
@@ -1822,55 +1851,41 @@ func (p *NoPEGParser) parseToken() (env.Object, error) {
 		idx := p.wordIndex.IndexWord("file")
 		return *env.NewUri(p.wordIndex, *env.NewWord(idx), "file://"+p.currentToken.Value[1:]), nil
 	case NPEG_TOKEN_CPATH:
-		parts := strings.Split(p.currentToken.Value, "/")
-		// Convert all '@' parts to '_@' for parent context navigation
-		for i, part := range parts {
-			if part == "@" {
-				parts[i] = "_@"
-			}
+		words, err := p.parseCPathWords(p.currentToken.Value)
+		if err != nil {
+			return nil, err
 		}
-		if len(parts) >= 2 {
-			words := make([]env.Word, len(parts))
-			for i, part := range parts {
-				idx := p.wordIndex.IndexWord(part)
-				words[i] = *env.NewWord(idx)
-			}
+		if len(words) >= 2 {
 			return *env.NewCPath(0, words), nil
 		}
-		return nil, fmt.Errorf("invalid context path '%s'. Context paths must have at least 2 parts separated by '/', like 'word/word'. Found %d part(s)", p.currentToken.Value, len(parts))
+		return nil, fmt.Errorf("invalid context path '%s'. Context paths must have at least 2 parts separated by '/', like 'word/word'. Found %d part(s)", p.currentToken.Value, len(words))
 	case NPEG_TOKEN_OPCPATH:
-		parts := strings.Split(p.currentToken.Value[1:], "/")
-		if len(parts) >= 2 {
-			words := make([]env.Word, len(parts))
-			for i, part := range parts {
-				idx := p.wordIndex.IndexWord(part)
-				words[i] = *env.NewWord(idx)
-			}
+		words, err := p.parseCPathWords(p.currentToken.Value[1:])
+		if err != nil {
+			return nil, err
+		}
+		if len(words) >= 2 {
 			return *env.NewCPath(1, words), nil
 		}
-		return nil, fmt.Errorf("invalid op context path '%s'. Op context paths must have at least 2 parts separated by '/', like '+word/word'. Found %d part(s)", p.currentToken.Value, len(parts))
+		return nil, fmt.Errorf("invalid op context path '%s'. Op context paths must have at least 2 parts separated by '/', like '+word/word'. Found %d part(s)", p.currentToken.Value, len(words))
 	case NPEG_TOKEN_PIPECPATH:
-		parts := strings.Split(p.currentToken.Value[1:], "/")
-		if len(parts) >= 2 {
-			words := make([]env.Word, len(parts))
-			for i, part := range parts {
-				idx := p.wordIndex.IndexWord(part)
-				words[i] = *env.NewWord(idx)
-			}
+		words, err := p.parseCPathWords(p.currentToken.Value[1:])
+		if err != nil {
+			return nil, err
+		}
+		if len(words) >= 2 {
 			return *env.NewCPath(2, words), nil
 		}
-		return nil, fmt.Errorf("invalid pipe context path '%s'. Pipe context paths must have at least 2 parts separated by '/', like '|word/word'. Found %d part(s)", p.currentToken.Value, len(parts))
+		return nil, fmt.Errorf("invalid pipe context path '%s'. Pipe context paths must have at least 2 parts separated by '/', like '|word/word'. Found %d part(s)", p.currentToken.Value, len(words))
 	case NPEG_TOKEN_GETCPATH:
-		parts := strings.Split(p.currentToken.Value[1:], "/")
-		if len(parts) >= 2 {
-			words := make([]env.Word, len(parts))
-			for i, part := range parts {
-				idx := p.wordIndex.IndexWord(part)
-				words[i] = *env.NewWord(idx)
-			}
+		words, err := p.parseCPathWords(p.currentToken.Value[1:])
+		if err != nil {
+			return nil, err
+		}
+		if len(words) >= 2 {
 			return *env.NewCPath(3, words), nil
 		}
-		return nil, fmt.Errorf("invalid get context path '%s'. Get context paths must have at least 2 parts separated by '/', like '?word/word'. Found %d part(s)", p.currentToken.Value, len(parts))
+		return nil, fmt.Errorf("invalid get context path '%s'. Get context paths must have at least 2 parts separated by '/', like '?word/word'. Found %d part(s)", p.currentToken.Value, len(words))
 	case NPEG_TOKEN_DATAPATH:
 		parts := splitDataPathValue(p.currentToken.Value)
 		if len(parts) < 2 {
@@ -1911,6 +1926,27 @@ func (p *NoPEGParser) parseToken() (env.Object, error) {
 	default:
 		return nil, fmt.Errorf("unknown token type: %d", p.currentToken.Type)
 	}
+}
+
+// parseCPathWords splits a context-path token value on '/' into word objects,
+// converting '@' segments to '_@' for parent-context navigation. It validates
+// that no segment is empty (e.g. "word//word", "word/", "@/word/").
+func (p *NoPEGParser) parseCPathWords(value string) ([]env.Word, error) {
+	parts := strings.Split(value, "/")
+	for i, part := range parts {
+		if part == "" {
+			return nil, fmt.Errorf("invalid context path '%s'. Empty segment found between '/' separators.", value)
+		}
+		if part == "@" {
+			parts[i] = "_@"
+		}
+	}
+	words := make([]env.Word, len(parts))
+	for i, part := range parts {
+		idx := p.wordIndex.IndexWord(part)
+		words[i] = *env.NewWord(idx)
+	}
+	return words, nil
 }
 
 // parseDataPathSegment converts a single data-path segment (the raw text

@@ -12,6 +12,7 @@ private Load %03-dotwords.rye
 private Load %04-pipewords.rye
 private Load %05-literals.rye
 private Load %06-cpaths.rye
+private Load %datapaths.rye
 private Load %07-blocks.rye
 private Load %08-special.rye
 private Load %09-spacing.rye
