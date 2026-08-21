@@ -73,6 +73,12 @@ var Builtins_bcrypt = map[string]*env.Builtin{
 	// * password: String to hash
 	// Returns:
 	// * string containing the bcrypt hash of the password
+	// Tests:
+	// equal { bcrypt-hash "secret" |type? } 'string
+	// Args:
+	// * password: String to hash
+	// Returns:
+	// * string containing the bcrypt hash of the password
 	"bcrypt-hash": {
 		Argsn: 1,
 		Doc:   "Generates a bcrypt hash from a password string.",
@@ -87,6 +93,14 @@ var Builtins_bcrypt = map[string]*env.Builtin{
 	// * password: Plain text password to compare
 	// Returns:
 	// * integer 1 if the password matches the hash, 0 otherwise
+	// Tests:
+	// equal { bcrypt-check "$2a$10$N9qo8uLOickgx2ZMRZo4e.PFTlCOKQOLawQy5AdYyZuG7JC2rA9e." "password" } 1
+	// equal { bcrypt-check "$2a$10$N9qo8uLOickgx2ZMRZo4e.PFTlCOKQOLawQy5AdYyZuG7JC2rA9e." "wrong" } 0
+	// Args:
+	// * hash: String containing the bcrypt hash
+	// * password: Plain text password to compare
+	// Returns:
+	// * integer 1 if the password matches the hash, 0 otherwise
 	"bcrypt-check": {
 		Argsn: 2,
 		Doc:   "Compares a bcrypt hash with a plain text password.",
@@ -96,6 +110,13 @@ var Builtins_bcrypt = map[string]*env.Builtin{
 	},
 
 	// Example: generate-token 32
+	// Args:
+	// * length: Integer number of random bytes to generate
+	// Returns:
+	// * string containing the hex-encoded random token
+	// Tests:
+	// equal { generate-token 4 |length? } 8
+	// error { generate-token "x" }
 	// Args:
 	// * length: Integer number of random bytes to generate
 	// Returns:

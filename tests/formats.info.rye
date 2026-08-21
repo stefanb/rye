@@ -15,6 +15,22 @@ section "Regexp " "Go like Regular expressions" {
 	{
 	}
 
+	group "re" 
+	"Creates a compiled regular expression object from a pattern string."
+	{
+		argsn 1
+		arg `pattern: String containing a regular expression pattern`
+		returns `native regexp object or error if pattern is invalid`
+	}
+
+	{
+		equal { re "[0-9]" |type? } 'native
+		equal { re "[0-9]" |kind? } 'regexp
+	}
+
+	{
+	}
+
 	group "regexp//Is-match" 
 	"Tests if a string matches the regular expression pattern."
 	{
@@ -460,6 +476,128 @@ section "Markdown " "Functions for processing and converting Markdown documents"
 
 	{
 		; Tested manually since it requires file input
+	}
+
+	{
+	}
+
+	group "markdown->html" 
+	"Converts Markdown text to HTML."
+	{
+		argsn 1
+		arg `text: Markdown source string`
+		returns `string containing HTML`
+	}
+
+	{
+		equal { markdown->html "# Title" |contains "<h" } true
+		error { markdown->html 123 }
+	}
+
+	{
+	}
+
+	group "markdown" 
+	"Creates a Markdown value from a string."
+	{
+		argsn 1
+		arg `text: String or Markdown value`
+		returns `Markdown value`
+	}
+
+	{
+		equal { markdown "Hello" |type? } 'markdown
+		equal { markdown (markdown "Hello") |type? } 'markdown
+	}
+
+	{
+	}
+
+	group "markdown//text" 
+	"Gets the raw markdown text from a Markdown value."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `raw markdown text as string`
+	}
+
+	{
+		equal { markdown "Hello" |markdown//text } "Hello"
+	}
+
+	{
+	}
+
+	group "markdown//length" 
+	"Gets the length of the markdown text in characters."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `integer length in characters`
+	}
+
+	{
+		equal { markdown "Hello" |markdown//length } 5
+	}
+
+	{
+	}
+
+	group "markdown//to-html" 
+	"Converts a Markdown value to HTML."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `string containing HTML`
+	}
+
+	{
+		equal { markdown "# T" |markdown//to-html |contains "<h" } true
+	}
+
+	{
+	}
+
+	group "markdown//headings" 
+	"Extracts all headings from markdown text as a list of strings."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `list of strings with headings`
+	}
+
+	{
+		equal { markdown "# A\n## B" |markdown//headings |type? } 'list
+	}
+
+	{
+	}
+
+	group "markdown//paragraphs" 
+	"Extracts all paragraphs from markdown text as a list of strings."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `list of strings with paragraphs`
+	}
+
+	{
+		equal { markdown "Hello\n\nWorld" |markdown//paragraphs |type? } 'list
+	}
+
+	{
+	}
+
+	group "markdown//links" 
+	"Extracts all links from markdown text as a list of dictionaries with 'text' and 'url' keys."
+	{
+		argsn 1
+		arg `md: Markdown value`
+		returns `list of dicts with 'text and 'url keys`
+	}
+
+	{
+		equal { markdown "[rye](https://ryelang.org)" |markdown//links |type? } 'list
 	}
 
 	{

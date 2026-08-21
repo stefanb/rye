@@ -7435,6 +7435,99 @@ section "Combinators " "Functions that combine other functions or control execut
 }
 
 section "Default" "" {
+	group "prns" 
+	"Prints a value followed by a space, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { prns "A" } "A "
+	}
+
+	{
+	}
+
+	group "prn" 
+	"Prints a value without adding a newline, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { prn "A" } "A"
+	}
+
+	{
+	}
+
+	group "print" 
+	"Prints a value followed by a newline, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { print "A" } "A\n"
+	}
+
+	{
+	}
+
+	group "print2" 
+	"Prints two values separated by a space and followed by a newline, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { print2 "A" "B" } "A B\n"
+	}
+
+	{
+	}
+
+	group "prn2" 
+	"Prints two values separated by a space without a newline, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { prn2 "A" "B" } "A B"
+	}
+
+	{
+	}
+
+	group "prns2" 
+	"Prints two values each followed by a space, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { prns2 "A" "B" } "A B "
+	}
+
+	{
+	}
+
 	group "format" 
 	"Formats a block of values using a format string with {} placeholders, returning the resulting string."
 	{
@@ -7443,9 +7536,15 @@ section "Default" "" {
 			1 [ String ]
 			2 [ Block ]
 		}
+		arg `template: String with {} placeholders`
+		arg `values: Block of values to substitute into the template in order`
+		returns `string with placeholders replaced`
 	}
 
 	{
+		; equal { format "x {} y {}" { 1 2 } } "x 1 y 2"
+		; error { format 1 { 1 2 } }
+		; error { format "{}" 42 }
 	}
 
 	{
@@ -7458,9 +7557,13 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		; stdout { prnf 42 "Value={}" } "Value=42"
 	}
 
 	{
@@ -7473,9 +7576,13 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		; stdout { printf 42 "Value={}" } "Value=42\n"
 	}
 
 	{
@@ -7488,9 +7595,14 @@ section "Default" "" {
 		argtypes {
 			1 [ String Uri ]
 		}
+		arg `value: Value to embed`
+		arg `target: String or URI with {} placeholder`
+		returns `string or URI with placeholder replaced by the value`
 	}
 
 	{
+		equal { embed 42 "v={}" } "v=42"
+		error { 42 embed 123 }
 	}
 
 	{
@@ -7503,9 +7615,13 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		stdout { prnv 42 "v={}" } "v=42"
 	}
 
 	{
@@ -7518,9 +7634,13 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		stdout { printv 42 "v={}" } "v=42\n"
 	}
 
 	{
@@ -7541,6 +7661,21 @@ section "Default" "" {
 	{
 	}
 
+	group "inspect" 
+	"Returns a string containing detailed type and value information about a value."
+	{
+		argsn 1
+		arg `value: Value to inspect`
+		returns `string with diagnostic representation`
+	}
+
+	{
+		; equal { 42 inspect |type? } 'string
+	}
+
+	{
+	}
+
 	group "esc" 
 	"Creates an ANSI escape sequence by prepending the escape character (\\033) to the input string."
 	{
@@ -7548,9 +7683,12 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `str: Base string to prefix with escape character`
+		returns `string starting with escape character`
 	}
 
 	{
+		equal { "A" esc } "\033A"
 	}
 
 	{
@@ -7563,9 +7701,13 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `string starting with escape character and embedded value`
 	}
 
 	{
+		equal { esc-val 42 "X={}" } "\033X=42"
 	}
 
 	{
@@ -7574,6 +7716,83 @@ section "Default" "" {
 }
 
 section "Default" "" {
+	group "display" 
+	"Interactively displays a value (Block, Dict, Table, TableRow, or Markdown) in the terminal with navigation capabilities."
+	{
+		argsn 1
+		pure
+		arg `value: Block, Dict, Table, TableRow, Markdown, or Error to display interactively`
+		returns `the selected value or the original value when user exits`
+	}
+
+	{
+	}
+
+	{
+`display [1 2 3]
+`	}
+
+	group "_.." 
+	"Shorthand alias for 'display' - interactively displays a value in the terminal with navigation capabilities."
+	{
+		argsn 1
+		arg `value: Block, Dict, Table, TableRow, Markdown, or Error to display interactively`
+		returns `the selected value or the original value when user exits`
+	}
+
+	{
+	}
+
+	{
+`_.. [1 2 3]
+`	}
+
+	group "display\\custom" 
+	"Interactively displays a Table in the terminal with a custom rendering function for each row."
+	{
+		argsn 2
+		arg `table: Table to display`
+		arg `renderer: Function called for each row with args (row is-current)`
+		returns `the selected row or original table when user exits`
+	}
+
+	{
+	}
+
+	{
+`table { "n" } { 1 2 3 } |display\custom fn { row is-curr } { if is-curr > 0 { print "*" } print row }
+`	}
+
+	group "print\\ssv" 
+	"Prints a block of values as space-separated values followed by a newline, returning the input block."
+	{
+		argsn 1
+		arg `values: Block to format as space-separated values`
+		returns `returns the input block after printing`
+	}
+
+	{
+		stdout { print\ssv { 1 2 "a" } } "1 2 a\n"
+	}
+
+	{
+	}
+
+	group "print\\csv" 
+	"Prints a block of values as comma-separated values followed by a newline, returning the input block."
+	{
+		argsn 1
+		arg `values: Block to format as comma-separated values`
+		returns `returns the input block after printing`
+	}
+
+	{
+		stdout { print\csv { 1 2 "a" } } "1,2,a\n"
+	}
+
+	{
+	}
+
 }
 
 section "Failure " "Handling failures" {

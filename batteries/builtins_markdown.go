@@ -956,6 +956,13 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Convert markdown to HTML
+	// Tests:
+	// equal { markdown->html "# Title" |contains "<h" } true
+	// error { markdown->html 123 }
+	// Args:
+	// * text: Markdown source string
+	// Returns:
+	// * string containing HTML
 	"markdown->html": {
 		Argsn: 1,
 		Doc:   "Converts Markdown text to HTML.",
@@ -975,6 +982,13 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Create a new Markdown value from string
+	// Tests:
+	// equal { markdown "Hello" |type? } 'markdown
+	// equal { markdown (markdown "Hello") |type? } 'markdown
+	// Args:
+	// * text: String or Markdown value
+	// Returns:
+	// * Markdown value
 	"markdown": {
 		Argsn: 1,
 		Doc:   "Creates a Markdown value from a string.",
@@ -991,6 +1005,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Get raw markdown text from Markdown value
+	// Tests:
+	// equal { markdown "Hello" |markdown//text } "Hello"
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * raw markdown text as string
 	"markdown//text": {
 		Argsn: 1,
 		Doc:   "Gets the raw markdown text from a Markdown value.",
@@ -1004,6 +1024,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Get length of markdown text
+	// Tests:
+	// equal { markdown "Hello" |markdown//length } 5
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * integer length in characters
 	"markdown//length": {
 		Argsn: 1,
 		Doc:   "Gets the length of the markdown text in characters.",
@@ -1017,6 +1043,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Convert Markdown value to HTML
+	// Tests:
+	// equal { markdown "# T" |markdown//to-html |contains "<h" } true
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * string containing HTML
 	"markdown//to-html": {
 		Argsn: 1,
 		Doc:   "Converts a Markdown value to HTML.",
@@ -1036,6 +1068,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Extract headings from markdown text
+	// Tests:
+	// equal { markdown "# A\n## B" |markdown//headings |type? } 'list
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * list of strings with headings
 	"markdown//headings": {
 		Argsn: 1,
 		Doc:   "Extracts all headings from markdown text as a list of strings.",
@@ -1055,6 +1093,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Extract paragraphs from markdown text
+	// Tests:
+	// equal { markdown "Hello\n\nWorld" |markdown//paragraphs |type? } 'list
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * list of strings with paragraphs
 	"markdown//paragraphs": {
 		Argsn: 1,
 		Doc:   "Extracts all paragraphs from markdown text as a list of strings.",
@@ -1074,6 +1118,12 @@ var Builtins_markdown = map[string]*env.Builtin{
 	},
 
 	// Extract links from markdown text
+	// Tests:
+	// equal { markdown "[rye](https://ryelang.org)" |markdown//links |type? } 'list
+	// Args:
+	// * md: Markdown value
+	// Returns:
+	// * list of dicts with 'text and 'url keys
 	"markdown//links": {
 		Argsn: 1,
 		Doc:   "Extracts all links from markdown text as a list of dictionaries with 'text' and 'url' keys.",

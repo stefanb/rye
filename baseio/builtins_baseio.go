@@ -204,6 +204,14 @@ var builtins_baseio = map[string]*env.Builtin{
 	// Process / shell
 	// -------------------------------------------------------------------------
 
+	// Tests:
+	// equal { scmd "exit 0" } 0
+	// equal { scmd "exit 3" } 3
+	// error { scmd 123 }
+	// Args:
+	// * cmd: Shell command string to execute
+	// Returns:
+	// * integer exit status code
 	"scmd": {
 		Argsn: 1,
 		Doc:   "Execute a shell command and return its exit status code.",
@@ -229,6 +237,13 @@ var builtins_baseio = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// equal { scmd\capture "echo hi" } "hi\n"
+	// error { scmd\capture 123 }
+	// Args:
+	// * cmd: Shell command string to execute and capture output
+	// Returns:
+	// * string containing captured stdout (stderr on error)
 	"scmd\\capture": {
 		Argsn: 1,
 		Doc:   "Execute a shell command and capture the output, return it as string",
@@ -259,6 +274,8 @@ var builtins_baseio = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// ; exit 0
 	"exit": { // **
 		Argsn: 1,
 		Doc:   "Exits the process with the given integer status code (or 0 for any non-integer).",
@@ -280,6 +297,8 @@ var builtins_baseio = map[string]*env.Builtin{
 	// Rye-itself - args / history (requires os.Args / process context)
 	// -------------------------------------------------------------------------
 
+	// Example:
+	// Rye-itself//args?
 	"Rye-itself//args?": {
 		Argsn: 0,
 		Doc:   "Returns command line arguments as a block of parsed values. Each argument is converted to appropriate type (integer, float, or string).",
@@ -288,6 +307,8 @@ var builtins_baseio = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// Rye-itself//Args?
 	"Rye-itself//Args?": {
 		Argsn: 0,
 		Doc:   "Returns command line arguments as a block of parsed values. Each argument is converted to appropriate type (integer, float, or string).",
@@ -296,6 +317,8 @@ var builtins_baseio = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// Rye-itself//Args\\raw?
 	"Rye-itself//Args\\raw?": {
 		Argsn: 1,
 		Doc:   "Returns raw command line arguments joined as a single string.",
@@ -308,6 +331,8 @@ var builtins_baseio = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// Rye-itself//History? 10 ; last 10 lines (when running under REPL)
 	"Rye-itself//History?": {
 		Argsn: 2,
 		Doc:   "Returns a block of the last N lines from REPL history.",
@@ -333,6 +358,9 @@ var builtins_baseio = map[string]*env.Builtin{
 	// stdout capture
 	// -------------------------------------------------------------------------
 
+	// Tests:
+	// equal { capture-stdout { print 1 } } "1\n"
+	// error { capture-stdout 1 }
 	"capture-stdout": { // **
 		Argsn: 1,
 		Doc:   "Executes a block of code while capturing all output to stdout, returning the captured output as a string.",

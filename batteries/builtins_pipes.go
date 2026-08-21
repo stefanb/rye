@@ -26,7 +26,8 @@ var Builtins_pipes = map[string]*env.Builtin{
 	// ##### Pipes ##### "Unix-like pipe operations for data processing"
 	//
 
-	// Example: cat %file.txt |into-string
+	// Example:
+	// cat %./data/file.txt |into-string
 	// Args:
 	// * path: URI path to the file
 	// Returns:
@@ -45,7 +46,8 @@ var Builtins_pipes = map[string]*env.Builtin{
 		},
 	},
 
-	// Example: find %/home/user |match ".go" |wcl
+	// Example:
+	// find %./data |wc\l
 	// Args:
 	// * path: URI path to the directory
 	// Returns:
@@ -1304,7 +1306,8 @@ var Builtins_pipes = map[string]*env.Builtin{
 		},
 	},
 
-	// Example: cat %logfile.log |extract\regexp regexp `apitoken "([^"]+)` |into-block
+	// Example:
+	// echo "id=123 x id=45" |extract\regexp re "id=([0-9]+)" |into-block
 	// Args:
 	// * pipe: script-pipe to read from
 	// * regexp: compiled regexp native; if the pattern has a capture group, group 1 is extracted, otherwise the whole match

@@ -151,6 +151,12 @@ func DisplayRyeValue(ps *env.ProgramState, arg0 env.Object, interactive bool) (e
 // registered by evaldo.RegisterBaseBuiltins and do not require these deps.
 var builtins_printing_extra = map[string]*env.Builtin{
 
+	// Example:
+	// display [1 2 3]
+	// Args:
+	// * value: Block, Dict, Table, TableRow, Markdown, or Error to display interactively
+	// Returns:
+	// * the selected value or the original value when user exits
 	"display": {
 		Pure:  true,
 		Argsn: 1,
@@ -161,6 +167,12 @@ var builtins_printing_extra = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// _.. [1 2 3]
+	// Args:
+	// * value: Block, Dict, Table, TableRow, Markdown, or Error to display interactively
+	// Returns:
+	// * the selected value or the original value when user exits
 	"_..": {
 		Argsn: 1,
 		Doc:   "Shorthand alias for 'display' - interactively displays a value in the terminal with navigation capabilities.",
@@ -222,6 +234,13 @@ var builtins_printing_extra = map[string]*env.Builtin{
 		},
 	},
 
+	// Example:
+	// table { "n" } { 1 2 3 } |display\custom fn { row is-curr } { if is-curr > 0 { print "*" } print row }
+	// Args:
+	// * table: Table to display
+	// * renderer: Function called for each row with args (row is-current)
+	// Returns:
+	// * the selected row or original table when user exits
 	"display\\custom": {
 		Argsn: 2,
 		Doc:   "Interactively displays a Table in the terminal with a custom rendering function for each row.",
@@ -252,6 +271,12 @@ var builtins_printing_extra = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { print\ssv { 1 2 "a" } } "1 2 a\n"
+	// Args:
+	// * values: Block to format as space-separated values
+	// Returns:
+	// * returns the input block after printing
 	"print\\ssv": {
 		Argsn: 1,
 		Doc:   "Prints a block of values as space-separated values followed by a newline, returning the input block.",
@@ -266,6 +291,12 @@ var builtins_printing_extra = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { print\csv { 1 2 "a" } } "1,2,a\n"
+	// Args:
+	// * values: Block to format as comma-separated values
+	// Returns:
+	// * returns the input block after printing
 	"print\\csv": {
 		Argsn: 1,
 		Doc:   "Prints a block of values as comma-separated values followed by a newline, returning the input block.",
