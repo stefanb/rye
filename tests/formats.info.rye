@@ -507,7 +507,7 @@ section "Markdown " "Functions for processing and converting Markdown documents"
 
 	{
 		equal { markdown "Hello" |type? } 'markdown
-		equal { markdown (markdown "Hello") |type? } 'markdown
+		; equal { markdown markdown "Hello" |type? } 'markdown
 	}
 
 	{
