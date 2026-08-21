@@ -193,7 +193,7 @@ func BlockToJSONWithIdxs(block env.Block, idxs *env.Idxs) string {
 		}
 		bu.WriteString(RyeToJSONWithIdxs(val, idxs))
 	}
-	bu.WriteString("] ")
+	bu.WriteString("]")
 	return bu.String()
 }
 
@@ -212,7 +212,7 @@ func ListToJSONWithIdxs(list env.List, idxs *env.Idxs) string {
 		}
 		bu.WriteString(RyeToJSONWithIdxs(val, idxs))
 	}
-	bu.WriteString("] ")
+	bu.WriteString("]")
 	return bu.String()
 }
 
@@ -235,7 +235,7 @@ func DictToJSONWithIdxs(dict env.Dict, idxs *env.Idxs) string {
 		bu.WriteString(RyeToJSONWithIdxs(val, idxs))
 		i = i + 1
 	}
-	bu.WriteString("} ")
+	bu.WriteString("}")
 	return bu.String()
 }
 
@@ -255,7 +255,7 @@ func ContextToJSON(ctx *env.RyeCtx, idxs *env.Idxs) string {
 		bu.WriteString(RyeToJSONWithIdxs(val, idxs))
 		i = i + 1
 	}
-	bu.WriteString("} ")
+	bu.WriteString("}")
 	return bu.String()
 }
 
@@ -277,7 +277,7 @@ func TableRowToJSONWithIdxs(row env.TableRow, idxs *env.Idxs) string {
 		bu.WriteString("\": ")
 		bu.WriteString(RyeToJSONWithIdxs(val, idxs))
 	}
-	bu.WriteString("} ")
+	bu.WriteString("}")
 	return bu.String()
 }
 
