@@ -53,6 +53,10 @@ var Builtins_http = map[string]*env.Builtin{
 	// * native Go-server object that can handle HTTP requests
 	"http-server": {
 		Argsn: 1,
+		// Example:
+		// srv: http-server ":8080"
+		// srv .Handle "/" "Hello world!"
+		// ; srv .Serve   ; blocks and serves requests
 		Doc:   "Creates a new HTTP server that listens on the specified address with a 10-second read header timeout.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch addr := arg0.(type) {

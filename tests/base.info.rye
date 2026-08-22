@@ -3441,685 +3441,6 @@ section "Collections " "" {
 
 }
 
-section "Vector " "Vector operations" {
-	group "vector" 
-	"Creates a vector from a block of numbers."
-	{
-		argsn 1
-		arg `block: block of numbers to convert to a vector`
-		returns `vector object`
-	}
-
-	{
-		equal { vector [ 1 2 3 ] |type? } 'vector
-		equal { vector [ 1 2 3 ] |length? } 3
-	}
-
-	{
-	}
-
-	group "normalize" 
-	"Calculates the L2 norm (Euclidean length) of a vector."
-	{
-		argsn 1
-		arg `vector: vector object to normalize`
-		returns `decimal representing the L2 norm (Euclidean length) of the vector`
-	}
-
-	{
-		equal { vector [ 3 4 ] |normalize } 5.0
-	}
-
-	{
-	}
-
-	group "std-deviation" 
-	"Calculates the standard deviation of a vector's elements."
-	{
-		argsn 1
-		arg `vector: vector object`
-		returns `decimal representing the standard deviation of the vector elements`
-	}
-
-	{
-		equal { cc math , vector [ 1 2 3 4 5 ] |std-deviation |round\to 2 } 1.58
-	}
-
-	{
-	}
-
-	group "cosine-similarity" 
-	"Calculates the cosine similarity between two vectors."
-	{
-		argsn 2
-		arg `vector1: first vector object`
-		arg `vector2: second vector object`
-		returns `decimal representing the cosine similarity between the two vectors`
-	}
-
-	{
-		equal { cosine-similarity vector [ 1 0 ] vector [ 0 1 ] } 0.0
-		equal { cosine-similarity vector [ 1 1 ] vector [ 1 1 ] } 1.0
-	}
-
-	{
-	}
-
-	group "correlation" 
-	"Calculates the correlation coefficient between two vectors."
-	{
-		argsn 2
-		arg `vector1: first vector object`
-		arg `vector2: second vector object`
-		returns `decimal representing the correlation coefficient between the two vectors`
-	}
-
-	{
-		equal { correlation vector [ 1 2 3 4 5 ] vector [ 1 2 3 4 5 ] } 1.0
-		equal { correlation vector [ 1 2 3 4 5 ] vector [ 5 4 3 2 1 ] } -1.0
-	}
-
-	{
-	}
-
-	group "dot-product" 
-	"Calculates the dot product between two vectors."
-	{
-		argsn 2
-		arg `vector1: first vector object`
-		arg `vector2: second vector object`
-		returns `decimal representing the dot product of the two vectors`
-	}
-
-	{
-		equal { dot-product vector [ 1 2 3 ] vector [ 4 5 6 ] } 32.0
-	}
-
-	{
-	}
-
-	group "euclidean-distance" 
-	"Calculates the Euclidean distance between two vectors. Useful for K-Means clustering."
-	{
-		argsn 2
-		arg `vector1: first vector object`
-		arg `vector2: second vector object`
-		returns `decimal representing the Euclidean distance between the two vectors`
-	}
-
-	{
-		equal { euclidean-distance vector [ 0 0 ] vector [ 3 4 ] } 5.0
-		equal { euclidean-distance vector [ 1 2 3 ] vector [ 1 2 3 ] } 0.0
-	}
-
-	{
-	}
-
-	group "mean-vectors" 
-	"Calculates the element-wise mean of multiple vectors. Useful for creating 'Master Anchors'."
-	{
-		argsn 1
-		arg `block: block of vectors to average`
-		returns `new vector representing the element-wise mean of all input vectors`
-	}
-
-	{
-		equal { mean-vectors [ vector [ 1 2 ] vector [ 3 4 ] ] |block } { 2.0 3.0 }
-	}
-
-	{
-	}
-
-	group "unit-vector" 
-	"Returns a new normalized vector (length = 1). Essential for consistent dot products and overlays."
-	{
-		argsn 1
-		arg `vector: vector object to normalize`
-		returns `new vector with length 1 (unit vector)`
-	}
-
-	{
-		equal { vector [ 3 4 ] |unit-vector |normalize } 1.0
-	}
-
-	{
-	}
-
-	group "project-vector" 
-	"Projects vector onto another vector. Answers: 'How much of this vector is in the direction of another?'"
-	{
-		argsn 2
-		arg `vector1: vector to project`
-		arg `vector2: vector to project onto`
-		returns `new vector representing the projection of vector1 onto vector2`
-	}
-
-	{
-		equal { vector [ 3 4 ] |project-vector vector [ 1 0 ] |block } { 3.0 0.0 }
-	}
-
-	{
-	}
-
-	group "reject-vector" 
-	"Removes projection from vector. Use this to 'subtract' a concept direction from a vector."
-	{
-		argsn 2
-		arg `vector1: vector to reject from`
-		arg `vector2: vector representing the direction to remove`
-		returns `new vector with the projection onto vector2 removed`
-	}
-
-	{
-		equal { vector [ 3 4 ] |reject-vector vector [ 1 0 ] |block } { 0.0 4.0 }
-	}
-
-	{
-	}
-
-}
-
-section "Matrix " "Matrix operations for 2D numerical data" {
-	group "matrix\\zeros" 
-	"Creates a new matrix with the given dimensions, initialized to zeros."
-	{
-		argsn 2
-		arg `rows: number of rows`
-		arg `cols: number of columns`
-		returns `a new zero-initialized matrix`
-	}
-
-	{
-		equal { matrix\zeros 3 4 |type? } 'matrix
-		equal { matrix\zeros 2 3 |rows? } 2
-		equal { matrix\zeros 2 3 |cols? } 3
-	}
-
-	{
-	}
-
-	group "matrix" 
-	"Creates a matrix from a shape block and a data block."
-	{
-		argsn 2
-		arg `shape: block with { rows cols }`
-		arg `data: block of decimal values in row-major order`
-		returns `a new matrix with the given data`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 1 2 } 6.0
-	}
-
-	{
-	}
-
-	group "matrix\\randn" 
-	"Creates a matrix with random normal values (mean 0, std 1)."
-	{
-		argsn 2
-		arg `rows: number of rows`
-		arg `cols: number of columns`
-		returns `a new matrix with random normal values (mean 0, std 1)`
-	}
-
-	{
-		equal { matrix\randn 3 4 |rows? } 3
-		equal { matrix\randn 3 4 |cols? } 4
-	}
-
-	{
-	}
-
-	group "matrix\\ones" 
-	"Creates a matrix filled with ones."
-	{
-		argsn 2
-		arg `rows: number of rows`
-		arg `cols: number of columns`
-		returns `a new matrix filled with ones`
-	}
-
-	{
-		equal { matrix\ones 2 3 |mat-get 0 0 } 1.0
-		equal { matrix\ones 2 3 |mat-get 1 2 } 1.0
-	}
-
-	{
-	}
-
-	group "matrix\\eye" 
-	"Creates an identity matrix of size n×n."
-	{
-		argsn 1
-		arg `n: size of the identity matrix`
-		returns `an n×n identity matrix`
-	}
-
-	{
-		equal { matrix\eye 3 |mat-get 0 0 } 1.0
-		equal { matrix\eye 3 |mat-get 0 1 } 0.0
-		equal { matrix\eye 3 |mat-get 1 1 } 1.0
-	}
-
-	{
-	}
-
-	group "shape?" 
-	"Returns the shape of a matrix as { rows cols }."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `block with { rows cols }`
-	}
-
-	{
-		equal { matrix\zeros 3 4 |shape? } { 3 4 }
-	}
-
-	{
-	}
-
-	group "rows?" 
-	"Returns the number of rows in a matrix."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `number of rows`
-	}
-
-	{
-		equal { matrix\zeros 3 4 |rows? } 3
-	}
-
-	{
-	}
-
-	group "cols?" 
-	"Returns the number of columns in a matrix."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `number of columns`
-	}
-
-	{
-		equal { matrix\zeros 3 4 |cols? } 4
-	}
-
-	{
-	}
-
-	group "mat-get" 
-	"Gets the element at the specified row and column (0-indexed)."
-	{
-		argsn 3
-		arg `mat: matrix`
-		arg `row: row index (0-based)`
-		arg `col: column index (0-based)`
-		returns `the element at (row, col)`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 0 1 } 2.0
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 1 0 } 4.0
-	}
-
-	{
-	}
-
-	group "mat-set!" 
-	"Sets the element at the specified row and column (0-indexed). Modifies matrix in place."
-	{
-		argsn 4
-		arg `mat: matrix (modified in place)`
-		arg `row: row index (0-based)`
-		arg `col: column index (0-based)`
-		arg `val: value to set`
-		returns `the modified matrix`
-	}
-
-	{
-		equal { m: matrix\zeros 2 2 , mat-set! m 0 1 5.0 , mat-get m 0 1 } 5.0
-	}
-
-	{
-	}
-
-	group "mat-row" 
-	"Returns a row of the matrix as a vector."
-	{
-		argsn 2
-		arg `mat: matrix`
-		arg `row: row index (0-based)`
-		returns `the row as a vector`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-row 0 |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-col" 
-	"Returns a column of the matrix as a vector."
-	{
-		argsn 2
-		arg `mat: matrix`
-		arg `col: column index (0-based)`
-		returns `the column as a vector`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-col 1 |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-transpose" 
-	"Returns the transpose of a matrix."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `transposed matrix`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-transpose |shape? } { 3 2 }
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-transpose |mat-get 0 1 } 4.0
-	}
-
-	{
-	}
-
-	group "mat-mul" 
-	"Matrix multiplication. A (m×n) × B (n×p) = C (m×p)."
-	{
-		argsn 2
-		arg `A: left matrix (m×n)`
-		arg `B: right matrix (n×p)`
-		returns `result matrix (m×p)`
-	}
-
-	{
-		equal { A: matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , B: matrix { 3 2 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , mat-mul A B |shape? } { 2 2 }
-		equal { A: matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , B: matrix { 3 2 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , mat-mul A B |mat-get 0 0 } 22.0
-	}
-
-	{
-	}
-
-	group "mat-hadamard" 
-	"Element-wise (Hadamard) multiplication of two matrices. In the future, could have a dedicated .* operator."
-	{
-		argsn 2
-		arg `A: first matrix`
-		arg `B: second matrix (same dimensions)`
-		returns `element-wise product`
-	}
-
-	{
-		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-hadamard A B |mat-get 0 0 } 1.0
-	}
-
-	{
-	}
-
-	group "mat-add" 
-	"Element-wise addition of two matrices. In the future, could have a dedicated .+ operator."
-	{
-		argsn 2
-		arg `A: first matrix`
-		arg `B: second matrix (same dimensions)`
-		returns `element-wise sum`
-	}
-
-	{
-		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-add A B |mat-get 0 0 } 2.0
-	}
-
-	{
-	}
-
-	group "mat-sub" 
-	"Element-wise subtraction of two matrices. In the future, could have a dedicated .- operator."
-	{
-		argsn 2
-		arg `A: first matrix`
-		arg `B: second matrix (same dimensions)`
-		returns `element-wise difference`
-	}
-
-	{
-		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-sub A B |mat-get 0 0 } 0.0
-	}
-
-	{
-	}
-
-	group "mat-scale" 
-	"Multiplies all elements of a matrix by a scalar."
-	{
-		argsn 2
-		arg `mat: matrix`
-		arg `scalar: number to multiply by`
-		returns `scaled matrix`
-	}
-
-	{
-		equal { matrix\ones 2 2 |mat-scale 3.0 |mat-get 0 0 } 3.0
-	}
-
-	{
-	}
-
-	group "mat-sum-rows" 
-	"Returns a vector containing the sum of each row."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `vector with sum of each row`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-sum-rows |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-sum-cols" 
-	"Returns a vector containing the sum of each column."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `vector with sum of each column`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-sum-cols |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-max-rows" 
-	"Returns a vector containing the maximum of each row."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `vector with max of each row`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-max-rows |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-max-cols" 
-	"Returns a vector containing the maximum of each column."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `vector with max of each column`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-max-cols |type? } 'vector
-	}
-
-	{
-	}
-
-	group "mat-to-block" 
-	"Converts a matrix to a block of blocks (each row is a block)."
-	{
-		argsn 1
-		arg `mat: matrix`
-		returns `block of blocks (each inner block is a row)`
-	}
-
-	{
-		equal { matrix { 2 2 } { 1.0 2.0 3.0 4.0 } |mat-to-block |length? } 2
-	}
-
-	{
-	}
-
-	group "block-to-mat" 
-	"Converts a block of blocks (rows) to a matrix."
-	{
-		argsn 1
-		arg `block: block of blocks (each inner block is a row)`
-		returns `matrix`
-	}
-
-	{
-		equal { { { 1.0 2.0 } { 3.0 4.0 } } |block-to-mat |shape? } { 2 2 }
-	}
-
-	{
-	}
-
-	group "vector-to-mat" 
-	"Converts a vector to a matrix. Use 'row for 1×n or 'col for n×1."
-	{
-		argsn 2
-		arg `vec: vector`
-		arg `orientation: 'row or 'col`
-		returns `matrix (1×n or n×1)`
-	}
-
-	{
-		equal { vector { 1.0 2.0 3.0 } |vector-to-mat 'row |shape? } { 1 3 }
-		equal { vector { 1.0 2.0 3.0 } |vector-to-mat 'col |shape? } { 3 1 }
-	}
-
-	{
-	}
-
-	group "mat-slice" 
-	"Extracts a sub-matrix. Row and column ranges are { start end } (inclusive, 0-indexed)."
-	{
-		argsn 3
-		arg `mat: matrix`
-		arg `row-range: { start end } (inclusive)`
-		arg `col-range: { start end } (inclusive)`
-		returns `sub-matrix`
-	}
-
-	{
-		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-slice { 0 1 } { 1 2 } |shape? } { 2 2 }
-	}
-
-	{
-	}
-
-	group "mat-softmax" 
-	"Applies softmax to each column of the matrix. Returns a new matrix."
-	{
-		argsn 1
-		arg `matrix: input matrix`
-		returns `a new matrix with softmax applied to each column`
-	}
-
-	{
-		equal { matrix { 2 2 } { 1.0 2.0 3.0 4.0 } |mat-softmax |mat-get 0 0 |> 0.1 } true
-	}
-
-	{
-	}
-
-	group "mat-set-col!" 
-	"Sets a column of the matrix from a vector or block. Mutates in place."
-	{
-		argsn 3
-		arg `matrix: matrix to modify`
-		arg `col: column index (0-based)`
-		arg `values: vector or block of values`
-		returns `the modified matrix`
-	}
-
-	{
-		equal { m: matrix\zeros 3 2 , mat-set-col! m 0 vector { 1.0 2.0 3.0 } , mat-get m 1 0 } 2.0
-	}
-
-	{
-	}
-
-	group "vec-add" 
-	"Adds two vectors element-wise. Returns a new vector."
-	{
-		argsn 2
-		arg `v1: first vector`
-		arg `v2: second vector`
-		returns `a new vector with element-wise sum`
-	}
-
-	{
-		equal { vec-add vector { 1.0 2.0 } vector { 3.0 4.0 } |first } 4.0
-	}
-
-	{
-	}
-
-	group "vec-sub" 
-	"Subtracts two vectors element-wise (v1 - v2). Returns a new vector."
-	{
-		argsn 2
-		arg `v1: first vector`
-		arg `v2: second vector`
-		returns `a new vector with element-wise difference (v1 - v2)`
-	}
-
-	{
-		equal { vec-sub vector { 5.0 3.0 } vector { 1.0 2.0 } |first } 4.0
-	}
-
-	{
-	}
-
-	group "vec-to-block" 
-	"Converts a vector to a block of decimal values."
-	{
-		argsn 1
-		arg `v: vector to convert`
-		returns `a block containing the vector values as decimals`
-	}
-
-	{
-		equal { vec-to-block vector { 1.0 2.0 3.0 } |second } 2.0
-	}
-
-	{
-	}
-
-}
-
 section "Types and Kinds " "" {
 	group "integer" 
 	"Tries to change a Rye value (like string) to integer."
@@ -7435,6 +6756,99 @@ section "Combinators " "Functions that combine other functions or control execut
 }
 
 section "Default" "" {
+	group "prns" 
+	"Prints a value followed by a space, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { prns "A" } "A "
+	}
+
+	{
+	}
+
+	group "prn" 
+	"Prints a value without adding a newline, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { prn "A" } "A"
+	}
+
+	{
+	}
+
+	group "print" 
+	"Prints a value followed by a newline, returning the input value."
+	{
+		argsn 1
+		arg `value: Value to print`
+		returns `returns the input value`
+	}
+
+	{
+		stdout { print "A" } "A\n"
+	}
+
+	{
+	}
+
+	group "print2" 
+	"Prints two values separated by a space and followed by a newline, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { print2 "A" "B" } "A B\n"
+	}
+
+	{
+	}
+
+	group "prn2" 
+	"Prints two values separated by a space without a newline, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { prn2 "A" "B" } "A B"
+	}
+
+	{
+	}
+
+	group "prns2" 
+	"Prints two values each followed by a space, returning the second value."
+	{
+		argsn 2
+		arg `a: First value to print`
+		arg `b: Second value to print`
+		returns `returns the second input value`
+	}
+
+	{
+		stdout { prns2 "A" "B" } "A B "
+	}
+
+	{
+	}
+
 	group "format" 
 	"Formats a block of values using a format string with {} placeholders, returning the resulting string."
 	{
@@ -7443,9 +6857,15 @@ section "Default" "" {
 			1 [ String ]
 			2 [ Block ]
 		}
+		arg `template: String with {} placeholders`
+		arg `values: Block of values to substitute into the template in order`
+		returns `string with placeholders replaced`
 	}
 
 	{
+		; equal { format "x {} y {}" { 1 2 } } "x 1 y 2"
+		; error { format 1 { 1 2 } }
+		; error { format "{}" 42 }
 	}
 
 	{
@@ -7458,9 +6878,13 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		; stdout { prnf 42 "Value={}" } "Value=42"
 	}
 
 	{
@@ -7473,9 +6897,13 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		; stdout { printf 42 "Value={}" } "Value=42\n"
 	}
 
 	{
@@ -7488,9 +6916,14 @@ section "Default" "" {
 		argtypes {
 			1 [ String Uri ]
 		}
+		arg `value: Value to embed`
+		arg `target: String or URI with {} placeholder`
+		returns `string or URI with placeholder replaced by the value`
 	}
 
 	{
+		equal { embed 42 "v={}" } "v=42"
+		error { 42 embed 123 }
 	}
 
 	{
@@ -7503,9 +6936,13 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		stdout { prnv 42 "v={}" } "v=42"
 	}
 
 	{
@@ -7518,9 +6955,13 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `returns the input value after printing`
 	}
 
 	{
+		stdout { printv 42 "v={}" } "v=42\n"
 	}
 
 	{
@@ -7541,6 +6982,21 @@ section "Default" "" {
 	{
 	}
 
+	group "inspect" 
+	"Returns a string containing detailed type and value information about a value."
+	{
+		argsn 1
+		arg `value: Value to inspect`
+		returns `string with diagnostic representation`
+	}
+
+	{
+		; equal { 42 inspect |type? } 'string
+	}
+
+	{
+	}
+
 	group "esc" 
 	"Creates an ANSI escape sequence by prepending the escape character (\\033) to the input string."
 	{
@@ -7548,9 +7004,12 @@ section "Default" "" {
 		argtypes {
 			1 [ String ]
 		}
+		arg `str: Base string to prefix with escape character`
+		returns `string starting with escape character`
 	}
 
 	{
+		equal { "A" esc } "\033A"
 	}
 
 	{
@@ -7563,17 +7022,18 @@ section "Default" "" {
 		argtypes {
 			2 [ String ]
 		}
+		arg `value: Value to embed`
+		arg `template: String with {} placeholder`
+		returns `string starting with escape character and embedded value`
+	}
+
+	{
+		equal { esc-val 42 "X={}" } "\033X=42"
 	}
 
 	{
 	}
 
-	{
-	}
-
-}
-
-section "Default" "" {
 }
 
 section "Failure " "Handling failures" {
@@ -8359,6 +7819,685 @@ section "Fast Math " "Fast infix math evaluator" {
 		equal { mth { 1 + 2 * 3 } } 7
 		equal { a: 5 mth { a * 2 } } 10
 		equal { a: 3 b: 4 mth { a * a + b * b } } 25
+	}
+
+	{
+	}
+
+}
+
+section "Vector " "Vector operations" {
+	group "vector" 
+	"Creates a vector from a block of numbers."
+	{
+		argsn 1
+		arg `block: block of numbers to convert to a vector`
+		returns `vector object`
+	}
+
+	{
+		equal { vector [ 1 2 3 ] |type? } 'vector
+		equal { vector [ 1 2 3 ] |length? } 3
+	}
+
+	{
+	}
+
+	group "normalize" 
+	"Calculates the L2 norm (Euclidean length) of a vector."
+	{
+		argsn 1
+		arg `vector: vector object to normalize`
+		returns `decimal representing the L2 norm (Euclidean length) of the vector`
+	}
+
+	{
+		equal { vector [ 3 4 ] |normalize } 5.0
+	}
+
+	{
+	}
+
+	group "std-deviation" 
+	"Calculates the standard deviation of a vector's elements."
+	{
+		argsn 1
+		arg `vector: vector object`
+		returns `decimal representing the standard deviation of the vector elements`
+	}
+
+	{
+		equal { cc math , vector [ 1 2 3 4 5 ] |std-deviation |round\to 2 } 1.58
+	}
+
+	{
+	}
+
+	group "cosine-similarity" 
+	"Calculates the cosine similarity between two vectors."
+	{
+		argsn 2
+		arg `vector1: first vector object`
+		arg `vector2: second vector object`
+		returns `decimal representing the cosine similarity between the two vectors`
+	}
+
+	{
+		equal { cosine-similarity vector [ 1 0 ] vector [ 0 1 ] } 0.0
+		equal { cosine-similarity vector [ 1 1 ] vector [ 1 1 ] } 1.0
+	}
+
+	{
+	}
+
+	group "correlation" 
+	"Calculates the correlation coefficient between two vectors."
+	{
+		argsn 2
+		arg `vector1: first vector object`
+		arg `vector2: second vector object`
+		returns `decimal representing the correlation coefficient between the two vectors`
+	}
+
+	{
+		equal { correlation vector [ 1 2 3 4 5 ] vector [ 1 2 3 4 5 ] } 1.0
+		equal { correlation vector [ 1 2 3 4 5 ] vector [ 5 4 3 2 1 ] } -1.0
+	}
+
+	{
+	}
+
+	group "dot-product" 
+	"Calculates the dot product between two vectors."
+	{
+		argsn 2
+		arg `vector1: first vector object`
+		arg `vector2: second vector object`
+		returns `decimal representing the dot product of the two vectors`
+	}
+
+	{
+		equal { dot-product vector [ 1 2 3 ] vector [ 4 5 6 ] } 32.0
+	}
+
+	{
+	}
+
+	group "euclidean-distance" 
+	"Calculates the Euclidean distance between two vectors. Useful for K-Means clustering."
+	{
+		argsn 2
+		arg `vector1: first vector object`
+		arg `vector2: second vector object`
+		returns `decimal representing the Euclidean distance between the two vectors`
+	}
+
+	{
+		equal { euclidean-distance vector [ 0 0 ] vector [ 3 4 ] } 5.0
+		equal { euclidean-distance vector [ 1 2 3 ] vector [ 1 2 3 ] } 0.0
+	}
+
+	{
+	}
+
+	group "mean-vectors" 
+	"Calculates the element-wise mean of multiple vectors. Useful for creating 'Master Anchors'."
+	{
+		argsn 1
+		arg `block: block of vectors to average`
+		returns `new vector representing the element-wise mean of all input vectors`
+	}
+
+	{
+		equal { mean-vectors [ vector [ 1 2 ] vector [ 3 4 ] ] |block } { 2.0 3.0 }
+	}
+
+	{
+	}
+
+	group "unit-vector" 
+	"Returns a new normalized vector (length = 1). Essential for consistent dot products and overlays."
+	{
+		argsn 1
+		arg `vector: vector object to normalize`
+		returns `new vector with length 1 (unit vector)`
+	}
+
+	{
+		equal { vector [ 3 4 ] |unit-vector |normalize } 1.0
+	}
+
+	{
+	}
+
+	group "project-vector" 
+	"Projects vector onto another vector. Answers: 'How much of this vector is in the direction of another?'"
+	{
+		argsn 2
+		arg `vector1: vector to project`
+		arg `vector2: vector to project onto`
+		returns `new vector representing the projection of vector1 onto vector2`
+	}
+
+	{
+		equal { vector [ 3 4 ] |project-vector vector [ 1 0 ] |block } { 3.0 0.0 }
+	}
+
+	{
+	}
+
+	group "reject-vector" 
+	"Removes projection from vector. Use this to 'subtract' a concept direction from a vector."
+	{
+		argsn 2
+		arg `vector1: vector to reject from`
+		arg `vector2: vector representing the direction to remove`
+		returns `new vector with the projection onto vector2 removed`
+	}
+
+	{
+		equal { vector [ 3 4 ] |reject-vector vector [ 1 0 ] |block } { 0.0 4.0 }
+	}
+
+	{
+	}
+
+}
+
+section "Matrix " "Matrix operations for 2D numerical data" {
+	group "matrix\\zeros" 
+	"Creates a new matrix with the given dimensions, initialized to zeros."
+	{
+		argsn 2
+		arg `rows: number of rows`
+		arg `cols: number of columns`
+		returns `a new zero-initialized matrix`
+	}
+
+	{
+		equal { matrix\zeros 3 4 |type? } 'matrix
+		equal { matrix\zeros 2 3 |rows? } 2
+		equal { matrix\zeros 2 3 |cols? } 3
+	}
+
+	{
+	}
+
+	group "matrix" 
+	"Creates a matrix from a shape block and a data block."
+	{
+		argsn 2
+		arg `shape: block with { rows cols }`
+		arg `data: block of decimal values in row-major order`
+		returns `a new matrix with the given data`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 1 2 } 6.0
+	}
+
+	{
+	}
+
+	group "matrix\\randn" 
+	"Creates a matrix with random normal values (mean 0, std 1)."
+	{
+		argsn 2
+		arg `rows: number of rows`
+		arg `cols: number of columns`
+		returns `a new matrix with random normal values (mean 0, std 1)`
+	}
+
+	{
+		equal { matrix\randn 3 4 |rows? } 3
+		equal { matrix\randn 3 4 |cols? } 4
+	}
+
+	{
+	}
+
+	group "matrix\\ones" 
+	"Creates a matrix filled with ones."
+	{
+		argsn 2
+		arg `rows: number of rows`
+		arg `cols: number of columns`
+		returns `a new matrix filled with ones`
+	}
+
+	{
+		equal { matrix\ones 2 3 |mat-get 0 0 } 1.0
+		equal { matrix\ones 2 3 |mat-get 1 2 } 1.0
+	}
+
+	{
+	}
+
+	group "matrix\\eye" 
+	"Creates an identity matrix of size n×n."
+	{
+		argsn 1
+		arg `n: size of the identity matrix`
+		returns `an n×n identity matrix`
+	}
+
+	{
+		equal { matrix\eye 3 |mat-get 0 0 } 1.0
+		equal { matrix\eye 3 |mat-get 0 1 } 0.0
+		equal { matrix\eye 3 |mat-get 1 1 } 1.0
+	}
+
+	{
+	}
+
+	group "shape?" 
+	"Returns the shape of a matrix as { rows cols }."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `block with { rows cols }`
+	}
+
+	{
+		equal { matrix\zeros 3 4 |shape? } { 3 4 }
+	}
+
+	{
+	}
+
+	group "rows?" 
+	"Returns the number of rows in a matrix."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `number of rows`
+	}
+
+	{
+		equal { matrix\zeros 3 4 |rows? } 3
+	}
+
+	{
+	}
+
+	group "cols?" 
+	"Returns the number of columns in a matrix."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `number of columns`
+	}
+
+	{
+		equal { matrix\zeros 3 4 |cols? } 4
+	}
+
+	{
+	}
+
+	group "mat-get" 
+	"Gets the element at the specified row and column (0-indexed)."
+	{
+		argsn 3
+		arg `mat: matrix`
+		arg `row: row index (0-based)`
+		arg `col: column index (0-based)`
+		returns `the element at (row, col)`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 0 1 } 2.0
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-get 1 0 } 4.0
+	}
+
+	{
+	}
+
+	group "mat-set!" 
+	"Sets the element at the specified row and column (0-indexed). Modifies matrix in place."
+	{
+		argsn 4
+		arg `mat: matrix (modified in place)`
+		arg `row: row index (0-based)`
+		arg `col: column index (0-based)`
+		arg `val: value to set`
+		returns `the modified matrix`
+	}
+
+	{
+		equal { m: matrix\zeros 2 2 , mat-set! m 0 1 5.0 , mat-get m 0 1 } 5.0
+	}
+
+	{
+	}
+
+	group "mat-row" 
+	"Returns a row of the matrix as a vector."
+	{
+		argsn 2
+		arg `mat: matrix`
+		arg `row: row index (0-based)`
+		returns `the row as a vector`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-row 0 |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-col" 
+	"Returns a column of the matrix as a vector."
+	{
+		argsn 2
+		arg `mat: matrix`
+		arg `col: column index (0-based)`
+		returns `the column as a vector`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-col 1 |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-transpose" 
+	"Returns the transpose of a matrix."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `transposed matrix`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-transpose |shape? } { 3 2 }
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-transpose |mat-get 0 1 } 4.0
+	}
+
+	{
+	}
+
+	group "mat-mul" 
+	"Matrix multiplication. A (m×n) × B (n×p) = C (m×p)."
+	{
+		argsn 2
+		arg `A: left matrix (m×n)`
+		arg `B: right matrix (n×p)`
+		returns `result matrix (m×p)`
+	}
+
+	{
+		equal { A: matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , B: matrix { 3 2 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , mat-mul A B |shape? } { 2 2 }
+		equal { A: matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , B: matrix { 3 2 } { 1.0 2.0 3.0 4.0 5.0 6.0 } , mat-mul A B |mat-get 0 0 } 22.0
+	}
+
+	{
+	}
+
+	group "mat-hadamard" 
+	"Element-wise (Hadamard) multiplication of two matrices. In the future, could have a dedicated .* operator."
+	{
+		argsn 2
+		arg `A: first matrix`
+		arg `B: second matrix (same dimensions)`
+		returns `element-wise product`
+	}
+
+	{
+		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-hadamard A B |mat-get 0 0 } 1.0
+	}
+
+	{
+	}
+
+	group "mat-add" 
+	"Element-wise addition of two matrices. In the future, could have a dedicated .+ operator."
+	{
+		argsn 2
+		arg `A: first matrix`
+		arg `B: second matrix (same dimensions)`
+		returns `element-wise sum`
+	}
+
+	{
+		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-add A B |mat-get 0 0 } 2.0
+	}
+
+	{
+	}
+
+	group "mat-sub" 
+	"Element-wise subtraction of two matrices. In the future, could have a dedicated .- operator."
+	{
+		argsn 2
+		arg `A: first matrix`
+		arg `B: second matrix (same dimensions)`
+		returns `element-wise difference`
+	}
+
+	{
+		equal { A: matrix\ones 2 2 , B: matrix\ones 2 2 , mat-sub A B |mat-get 0 0 } 0.0
+	}
+
+	{
+	}
+
+	group "mat-scale" 
+	"Multiplies all elements of a matrix by a scalar."
+	{
+		argsn 2
+		arg `mat: matrix`
+		arg `scalar: number to multiply by`
+		returns `scaled matrix`
+	}
+
+	{
+		equal { matrix\ones 2 2 |mat-scale 3.0 |mat-get 0 0 } 3.0
+	}
+
+	{
+	}
+
+	group "mat-sum-rows" 
+	"Returns a vector containing the sum of each row."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `vector with sum of each row`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-sum-rows |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-sum-cols" 
+	"Returns a vector containing the sum of each column."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `vector with sum of each column`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-sum-cols |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-max-rows" 
+	"Returns a vector containing the maximum of each row."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `vector with max of each row`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-max-rows |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-max-cols" 
+	"Returns a vector containing the maximum of each column."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `vector with max of each column`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-max-cols |type? } 'vector
+	}
+
+	{
+	}
+
+	group "mat-to-block" 
+	"Converts a matrix to a block of blocks (each row is a block)."
+	{
+		argsn 1
+		arg `mat: matrix`
+		returns `block of blocks (each inner block is a row)`
+	}
+
+	{
+		equal { matrix { 2 2 } { 1.0 2.0 3.0 4.0 } |mat-to-block |length? } 2
+	}
+
+	{
+	}
+
+	group "block-to-mat" 
+	"Converts a block of blocks (rows) to a matrix."
+	{
+		argsn 1
+		arg `block: block of blocks (each inner block is a row)`
+		returns `matrix`
+	}
+
+	{
+		equal { { { 1.0 2.0 } { 3.0 4.0 } } |block-to-mat |shape? } { 2 2 }
+	}
+
+	{
+	}
+
+	group "vector-to-mat" 
+	"Converts a vector to a matrix. Use 'row for 1×n or 'col for n×1."
+	{
+		argsn 2
+		arg `vec: vector`
+		arg `orientation: 'row or 'col`
+		returns `matrix (1×n or n×1)`
+	}
+
+	{
+		equal { vector { 1.0 2.0 3.0 } |vector-to-mat 'row |shape? } { 1 3 }
+		equal { vector { 1.0 2.0 3.0 } |vector-to-mat 'col |shape? } { 3 1 }
+	}
+
+	{
+	}
+
+	group "mat-slice" 
+	"Extracts a sub-matrix. Row and column ranges are { start end } (inclusive, 0-indexed)."
+	{
+		argsn 3
+		arg `mat: matrix`
+		arg `row-range: { start end } (inclusive)`
+		arg `col-range: { start end } (inclusive)`
+		returns `sub-matrix`
+	}
+
+	{
+		equal { matrix { 2 3 } { 1.0 2.0 3.0 4.0 5.0 6.0 } |mat-slice { 0 1 } { 1 2 } |shape? } { 2 2 }
+	}
+
+	{
+	}
+
+	group "mat-softmax" 
+	"Applies softmax to each column of the matrix. Returns a new matrix."
+	{
+		argsn 1
+		arg `matrix: input matrix`
+		returns `a new matrix with softmax applied to each column`
+	}
+
+	{
+		equal { matrix { 2 2 } { 1.0 2.0 3.0 4.0 } |mat-softmax |mat-get 0 0 |> 0.1 } true
+	}
+
+	{
+	}
+
+	group "mat-set-col!" 
+	"Sets a column of the matrix from a vector or block. Mutates in place."
+	{
+		argsn 3
+		arg `matrix: matrix to modify`
+		arg `col: column index (0-based)`
+		arg `values: vector or block of values`
+		returns `the modified matrix`
+	}
+
+	{
+		equal { m: matrix\zeros 3 2 , mat-set-col! m 0 vector { 1.0 2.0 3.0 } , mat-get m 1 0 } 2.0
+	}
+
+	{
+	}
+
+	group "vec-add" 
+	"Adds two vectors element-wise. Returns a new vector."
+	{
+		argsn 2
+		arg `v1: first vector`
+		arg `v2: second vector`
+		returns `a new vector with element-wise sum`
+	}
+
+	{
+		equal { vec-add vector { 1.0 2.0 } vector { 3.0 4.0 } |first } 4.0
+	}
+
+	{
+	}
+
+	group "vec-sub" 
+	"Subtracts two vectors element-wise (v1 - v2). Returns a new vector."
+	{
+		argsn 2
+		arg `v1: first vector`
+		arg `v2: second vector`
+		returns `a new vector with element-wise difference (v1 - v2)`
+	}
+
+	{
+		equal { vec-sub vector { 5.0 3.0 } vector { 1.0 2.0 } |first } 4.0
+	}
+
+	{
+	}
+
+	group "vec-to-block" 
+	"Converts a vector to a block of decimal values."
+	{
+		argsn 1
+		arg `v: vector to convert`
+		returns `a block containing the vector values as decimals`
+	}
+
+	{
+		equal { vec-to-block vector { 1.0 2.0 3.0 } |second } 2.0
 	}
 
 	{

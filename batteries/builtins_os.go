@@ -67,6 +67,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * none
 	// Returns:
 	// * uri representing the current working directory
+	// Example:
+	// cc os cwd?
 	"cwd?": {
 		Argsn: 0,
 		Doc:   "Gets the current working directory.",
@@ -85,6 +87,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * path: uri representing the file or directory to check
 	// Returns:
 	// * boolean: true if exists, false if not
+	// Example:
+	// cc os does-exist %./tests/data/file.txt
 	"does-exist": {
 		Argsn: 1,
 		Doc:   "Checks if a file or directory exists.",
@@ -109,6 +113,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * path: uri representing the directory to change to
 	// Returns:
 	// * the same uri if successful
+	// Example:
+	// cc os cd %.
 	"cd": {
 		Argsn: 1,
 		Doc:   "Changes the current working directory.",
@@ -131,6 +137,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * variable_name: string containing the name of the environment variable
 	// Returns:
 	// * string containing the value of the environment variable
+	// Example:
+	// cc os env? "PATH"
 	"env?": {
 		Argsn: 1,
 		Doc:   "Gets the value of an environment variable.",
@@ -155,6 +163,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * path: uri representing the directory to create
 	// Returns:
 	// * the same uri if successful
+	// Example:
+	// cc os mkdir %./tests/delme
 	"mkdir": {
 		Argsn: 1,
 		Doc:   "Creates a new directory.",
@@ -183,15 +193,13 @@ var Builtins_os = map[string]*env.Builtin{
 	// * none
 	// Returns:
 	// * uri representing the created temporary directory
+	// Example:
+	// cc os mktmp
 	"mktmp": {
 		Argsn: 0,
-		Doc:   "Creates a new temporary directory.",
+		Doc:   "Removed: use mktemp instead.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
-			dir, err := os.MkdirTemp("", "rye-tmp-")
-			if err != nil {
-				return evaldo.MakeBuiltinError(ps, "Error creating temporary directory: "+err.Error(), "mktmp")
-			}
-			return *env.NewUri1(ps.Idx, "file://"+dir)
+			return evaldo.MakeBuiltinError(ps, "This function was removed. Use mktemp.", "mktmp")
 		},
 	},
 
@@ -200,6 +208,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * the uri if successful
 	// Tags: #file #delete
+	// Example:
+	// cc os rm %./tests/delme
 	"rm": {
 		Argsn: 1,
 		Doc:   "Removes a file or empty directory.",
@@ -223,6 +233,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * the uri if successful
 	// Tags: #file #delete
+	// Example:
+	// cc os rmdir %./tests/delme
 	"rmdir": {
 		Argsn: 1,
 		Doc:   "Removes a directory and all its contents recursively.",
@@ -290,6 +302,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * dict with keys: name, size, mode, mod-time, is-dir
 	// Tags: #file #info
+	// Example:
+	// cc os file-info? %./tests/data/file.txt
 	"file-info?": {
 		Argsn: 1,
 		Doc:   "Gets detailed information about a file or directory.",
@@ -319,6 +333,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * boolean: true if path is a directory, false otherwise. Fails if the path does not exist.
 	// Tags: #file #check
+	// Example:
+	// cc os is-dir %./tests/data
 	"is-dir": {
 		Argsn: 1,
 		Doc:   "Checks if a path is a directory. Fails if the path does not exist.",
@@ -342,6 +358,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * boolean: true if path is a regular file, false otherwise. Fails if the path does not exist.
 	// Tags: #file #check
+	// Example:
+	// cc os is-file %./tests/data/file.txt
 	"is-file": {
 		Argsn: 1,
 		Doc:   "Checks if a path is a regular file (not a directory). Fails if the path does not exist.",
@@ -365,6 +383,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * uri representing the user's home directory
 	// Tags: #file #directory
+	// Example:
+	// cc os home-dir?
 	"home-dir?": {
 		Argsn: 0,
 		Doc:   "Gets the current user's home directory.",
@@ -382,6 +402,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * uri representing the system's temporary directory
 	// Tags: #file #directory
+	// Example:
+	// cc os tmp-dir?
 	"tmp-dir?": {
 		Argsn: 0,
 		Doc:   "Gets the system's default temporary directory.",
@@ -396,6 +418,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * block of uris matching the pattern
 	// Tags: #file #search
+	// Example:
+	// cc os glob "./tests/data/*.pem"
 	"glob": {
 		Argsn: 1,
 		Doc:   "Returns files matching a glob pattern.",
@@ -451,6 +475,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * none
 	// Returns:
 	// * block of uris representing files and directories in the current directory
+	// Example:
+	// cc os ls
 	"ls": {
 		Argsn: 0,
 		Doc:   "Lists files and directories in the current directory.",
@@ -476,6 +502,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * filter: file-uri to list directory, word 'dirs' or 'files' to filter by type, string for partial name matching, or regexp to match names
 	// Returns:
 	// * block of uris representing filtered files or directories in the specified directory or current directory
+	// Example:
+	// cc os ls\ 'files
 	"ls\\": {
 		Argsn: 1,
 		Doc:   "Lists files or directories with absolute paths when possible. If argument is a file-uri, lists that directory (or returns failure if not a directory). Otherwise filters current directory: 'dirs' for directories only, 'files' for files only, a string for partial name matching, or a regexp to match names.",
@@ -601,6 +629,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * none
 	// Returns:
 	// * block of uris representing directories in the current directory
+	// Example:
+	// cc os ls\\dirs
 	"ls\\dirs": {
 		Argsn: 0,
 		Doc:   "Lists only directories in the current directory.",
@@ -624,6 +654,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * none
 	// Returns:
 	// * block of uris representing files (non-directories) in the current directory
+	// Example:
+	// cc os ls\\files
 	"ls\\files": {
 		Argsn: 0,
 		Doc:   "Lists only files (non-directories) in the current directory.",
@@ -647,6 +679,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * filter: string for partial name matching, or regexp to match names
 	// Returns:
 	// * block of uris representing filtered directories in the current directory
+	// Example:
+	// cc os ls\\dirs\\ "src"
 	"ls\\dirs\\": {
 		Argsn: 1,
 		Doc:   "Lists directories in the current directory with filtering. Use a string for partial name matching, or a regexp to match names.",
@@ -693,6 +727,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// * filter: string for partial name matching, or regexp to match names
 	// Returns:
 	// * block of uris representing filtered files (non-directories) in the current directory
+	// Example:
+	// cc os ls\\files\\ re "\.go$"
 	"ls\\files\\": {
 		Argsn: 1,
 		Doc:   "Lists files (non-directories) in the current directory with filtering. Use a string for partial name matching, or a regexp to match names.",
@@ -847,18 +883,9 @@ var Builtins_os = map[string]*env.Builtin{
 	// Tags: #file #path
 	"abs-path": {
 		Argsn: 1,
-		Doc:   "Returns the absolute path for a given path.",
+		Doc:   "Removed: use realpath instead.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
-			switch path := arg0.(type) {
-			case env.Uri:
-				absPath, err := filepath.Abs(resolvePath(ps.WorkingPath, path.GetPath()))
-				if err != nil {
-					return evaldo.MakeBuiltinError(ps, "Error getting absolute path: "+err.Error(), "abs-path")
-				}
-				return *env.NewUri1(ps.Idx, "file://"+absPath)
-			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "abs-path")
-			}
+			return evaldo.MakeBuiltinError(ps, "This function was removed. Use realpath.", "abs-path")
 		},
 	},
 
@@ -867,6 +894,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * uri representing the directory containing the path
 	// Tags: #file #path
+	// Example:
+	// cc os dirname %./tests/data/file.txt
 	"dirname": {
 		Argsn: 1,
 		Doc:   "Returns the directory part of a path.",
@@ -886,6 +915,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * string representing the filename part of the path
 	// Tags: #file #path
+	// Example:
+	// cc os basename %./tests/data/file.txt
 	"basename": {
 		Argsn: 1,
 		Doc:   "Returns the filename part of a path.",
@@ -905,6 +936,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * string representing the file extension (including the dot)
 	// Tags: #file #path
+	// Example:
+	// cc os file-ext %./tests/data/file.txt
 	"file-ext": {
 		Argsn: 1,
 		Doc:   "Returns the file extension of a path (including the dot).",
@@ -924,6 +957,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * uri representing the joined path
 	// Tags: #file #path
+	// Example:
+	// cc os join-path { %./tests "data" "file.txt" }
 	"join-path": {
 		Argsn: 1,
 		Doc:   "Joins path elements into a single path.",
@@ -958,6 +993,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * string representing the current user's username
 	// Tags: #system #user
+	// Example:
+	// cc os whoami
 	"whoami": {
 		Argsn: 0,
 		Doc:   "Returns the current user's username.",
@@ -978,6 +1015,8 @@ var Builtins_os = map[string]*env.Builtin{
 	// Returns:
 	// * uri representing the path to the executable, or error if not found
 	// Tags: #system #command
+	// Example:
+	// cc os which "sh"
 	"which": {
 		Argsn: 1,
 		Doc:   "Finds the path to an executable command.",
@@ -991,6 +1030,84 @@ var Builtins_os = map[string]*env.Builtin{
 				return *env.NewUri1(ps.Idx, "file://"+path)
 			default:
 				return evaldo.MakeArgError(ps, 1, []env.Type{env.StringType}, "which")
+			}
+		},
+	},
+
+	// Aliases and additional getters
+	"pwd": {
+		Argsn: 0,
+		Doc:   "Gets the current working directory (alias of cwd?).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			path, err := os.Getwd()
+			if err != nil {
+				return evaldo.MakeBuiltinError(ps, err.Error(), "pwd")
+			}
+			return *env.NewUri1(ps.Idx, "file://"+path)
+		},
+	},
+
+	"realpath": {
+		Argsn: 1,
+		Doc:   "Returns the absolute path for a given path (alias of abs-path).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch path := arg0.(type) {
+			case env.Uri:
+				absPath, err := filepath.Abs(resolvePath(ps.WorkingPath, path.GetPath()))
+				if err != nil {
+					return evaldo.MakeBuiltinError(ps, "Error getting absolute path: "+err.Error(), "realpath")
+				}
+				return *env.NewUri1(ps.Idx, "file://"+absPath)
+			default:
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "realpath")
+			}
+		},
+	},
+
+	"mktemp": {
+		Argsn: 0,
+		Doc:   "Creates a new temporary directory (alias of mktmp).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			dir, err := os.MkdirTemp("", "rye-tmp-")
+			if err != nil {
+				return evaldo.MakeBuiltinError(ps, "Error creating temporary directory: "+err.Error(), "mktemp")
+			}
+			return *env.NewUri1(ps.Idx, "file://"+dir)
+		},
+	},
+
+	"envs?": {
+		Argsn: 0,
+		Doc:   "Gets all environment variables as a dictionary of key -> value.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			vars := os.Environ()
+			d := make(map[string]any, len(vars))
+			for _, kv := range vars {
+				if eq := strings.IndexByte(kv, '='); eq >= 0 {
+					key := kv[:eq]
+					val := kv[eq+1:]
+					d[key] = *env.NewString(val)
+				}
+			}
+			return *env.NewDict(d)
+		},
+	},
+
+	"process?": {
+		Argsn: 1,
+		Doc:   "Gets detailed information about a specific process by PID (alias of process).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch pid := arg0.(type) {
+			case env.Integer:
+				proc, err := process.NewProcess(int32(pid.Value))
+				if err != nil {
+					return evaldo.MakeBuiltinError(ps, err.Error(), "process?")
+				}
+				s := proccesTableBase()
+				processTableAdd(s, proc)
+				return s.Rows[0].ToDict()
+			default:
+				return *evaldo.MakeArgError(ps, 1, []env.Type{env.IntegerType}, "process?")
 			}
 		},
 	},
@@ -1216,20 +1333,9 @@ var Builtins_os = map[string]*env.Builtin{
 	// * dictionary containing detailed information about the specified process
 	"process": {
 		Argsn: 1,
-		Doc:   "Gets detailed information about a specific process by PID.",
+		Doc:   "Removed: use process? instead.",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
-			switch pid := arg0.(type) {
-			case env.Integer:
-				process, err := process.NewProcess(int32(pid.Value))
-				if err != nil {
-					return evaldo.MakeBuiltinError(ps, err.Error(), "process")
-				}
-				s := proccesTableBase()
-				processTableAdd(s, process)
-				return s.Rows[0].ToDict()
-			default:
-				return *evaldo.MakeArgError(ps, 1, []env.Type{env.IntegerType}, "process")
-			}
+			return evaldo.MakeBuiltinError(ps, "This function was removed. Use process?.", "process")
 		},
 	},
 
@@ -1364,7 +1470,16 @@ var Builtins_os = map[string]*env.Builtin{
 	// Tags: #archive #extract
 	"un-tgz": {
 		Argsn: 2,
-		Doc:   "Extracts a .tar.gz archive to a directory.",
+		Doc:   "Removed: use untgz instead.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			return evaldo.MakeBuiltinError(ps, "This function was removed. Use untgz.", "un-tgz")
+		},
+	},
+
+	// Aliases for archive operations
+	"untgz": {
+		Argsn: 2,
+		Doc:   "Extracts a .tar.gz archive to a directory (alias of un-tgz).",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch src := arg0.(type) {
 			case env.Uri:
@@ -1372,16 +1487,61 @@ var Builtins_os = map[string]*env.Builtin{
 				case env.Uri:
 					srcPath := resolvePath(ps.WorkingPath, src.GetPath())
 					dstPath := resolvePath(ps.WorkingPath, dst.GetPath())
-					err := extractTarGz(srcPath, dstPath)
-					if err != nil {
-						return evaldo.MakeBuiltinError(ps, "Error extracting tar.gz: "+err.Error(), "un-tgz")
+					if err := extractTarGz(srcPath, dstPath); err != nil {
+						return evaldo.MakeBuiltinError(ps, "Error extracting tar.gz: "+err.Error(), "untgz")
 					}
 					return arg1
 				default:
-					return evaldo.MakeArgError(ps, 2, []env.Type{env.UriType}, "un-tgz")
+					return evaldo.MakeArgError(ps, 2, []env.Type{env.UriType}, "untgz")
 				}
 			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "un-tgz")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "untgz")
+			}
+		},
+	},
+
+	"tar-gz": {
+		Argsn: 2,
+		Doc:   "Creates a .tar.gz archive from a file or directory (alias of tgz).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch src := arg0.(type) {
+			case env.Uri:
+				switch dst := arg1.(type) {
+				case env.Uri:
+					srcPath := resolvePath(ps.WorkingPath, src.GetPath())
+					dstPath := resolvePath(ps.WorkingPath, dst.GetPath())
+					if err := createTarGz(srcPath, dstPath); err != nil {
+						return evaldo.MakeBuiltinError(ps, "Error creating tar.gz: "+err.Error(), "tar-gz")
+					}
+					return arg1
+				default:
+					return evaldo.MakeArgError(ps, 2, []env.Type{env.UriType}, "tar-gz")
+				}
+			default:
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "tar-gz")
+			}
+		},
+	},
+
+	"untar-gz": {
+		Argsn: 2,
+		Doc:   "Extracts a .tar.gz archive to a directory (alias of un-tgz).",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			switch src := arg0.(type) {
+			case env.Uri:
+				switch dst := arg1.(type) {
+				case env.Uri:
+					srcPath := resolvePath(ps.WorkingPath, src.GetPath())
+					dstPath := resolvePath(ps.WorkingPath, dst.GetPath())
+					if err := extractTarGz(srcPath, dstPath); err != nil {
+						return evaldo.MakeBuiltinError(ps, "Error extracting tar.gz: "+err.Error(), "untar-gz")
+					}
+					return arg1
+				default:
+					return evaldo.MakeArgError(ps, 2, []env.Type{env.UriType}, "untar-gz")
+				}
+			default:
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType}, "untar-gz")
 			}
 		},
 	},
@@ -1465,7 +1625,15 @@ var Builtins_os = map[string]*env.Builtin{
 	// Tags: #find #files
 	"find": {
 		Argsn: 1,
-		Doc:   "Creates a new file finder starting from the given path(s).",
+		Doc:   "Removed: use new-finder instead.",
+		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
+			return evaldo.MakeBuiltinError(ps, "This function was removed. Use new-finder.", "find")
+		},
+	},
+
+	"new-finder": {
+		Argsn: 1,
+		Doc:   "Creates a new file finder starting from the given path(s) (alias of find).",
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
 			switch path := arg0.(type) {
 			case env.Uri:
@@ -1481,13 +1649,13 @@ var Builtins_os = map[string]*env.Builtin{
 					case env.String:
 						paths = append(paths, p.Value)
 					default:
-						return evaldo.MakeBuiltinError(ps, "Block must contain only uris or strings", "find")
+						return evaldo.MakeBuiltinError(ps, "Block must contain only uris or strings", "new-finder")
 					}
 				}
 				finder := find.NewFind(paths...)
 				return *env.NewNative(ps.Idx, finder, "finder")
 			default:
-				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType, env.BlockType}, "find")
+				return evaldo.MakeArgError(ps, 1, []env.Type{env.UriType, env.BlockType}, "new-finder")
 			}
 		},
 	},

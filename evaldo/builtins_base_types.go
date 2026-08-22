@@ -86,7 +86,8 @@ var builtins_types = map[string]*env.Builtin{
 		Doc:   "Tries to turn a Rye value to string.",
 		Pure:  true,
 		Fn: func(ps *env.ProgramState, arg0 env.Object, arg1 env.Object, arg2 env.Object, arg3 env.Object, arg4 env.Object) env.Object {
-			return *env.NewString(arg0.Print(*ps.Idx))
+			// Prefer Dump() to avoid display prefixes like leading "%" for file-uri
+			return *env.NewString(arg0.Dump(*ps.Idx))
 		},
 	},
 

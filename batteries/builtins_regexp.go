@@ -37,6 +37,13 @@ var Builtins_regexp = map[string]*env.Builtin{
 	},
 
 	// short regexp constructor, mostly for console use like ls\ re "pr.?n.*"
+	// Tests:
+	//  equal { re "[0-9]" |type? } 'native
+	//  equal { re "[0-9]" |kind? } 'regexp
+	// Args:
+	// * pattern: String containing a regular expression pattern
+	// Returns:
+	// * native regexp object or error if pattern is invalid
 	"re": {
 		Argsn: 1,
 		Doc:   "Creates a compiled regular expression object from a pattern string.",

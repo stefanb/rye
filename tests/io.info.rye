@@ -924,6 +924,116 @@ section "Unix Domain Socket Operations " "Unix domain socket operations for IPC"
 }
 
 section "Default" "" {
+	group "scmd" 
+	"Execute a shell command and return its exit status code."
+	{
+		argsn 1
+		arg `cmd: Shell command string to execute`
+		returns `integer exit status code`
+	}
+
+	{
+		equal { scmd "exit 0" } 0
+		equal { scmd "exit 3" } 3
+		error { scmd 123 }
+	}
+
+	{
+	}
+
+	group "scmd\\capture" 
+	"Execute a shell command and capture the output, return it as string"
+	{
+		argsn 1
+		arg `cmd: Shell command string to execute and capture output`
+		returns `string containing captured stdout (stderr on error)`
+	}
+
+	{
+		equal { scmd\capture "echo hi" } "hi\n"
+		error { scmd\capture 123 }
+	}
+
+	{
+	}
+
+	group "exit" 
+	"Exits the process with the given integer status code (or 0 for any non-integer)."
+	{
+		argsn 1
+	}
+
+	{
+	}
+
+	{
+`; exit 0
+`	}
+
+	group "Rye-itself//args?" 
+	"Returns command line arguments as a block of parsed values. Each argument is converted to appropriate type (integer, float, or string)."
+	{
+	}
+
+	{
+	}
+
+	{
+`Rye-itself//args?
+`	}
+
+	group "Rye-itself//Args?" 
+	"Returns command line arguments as a block of parsed values. Each argument is converted to appropriate type (integer, float, or string)."
+	{
+	}
+
+	{
+	}
+
+	{
+`Rye-itself//Args?
+`	}
+
+	group "Rye-itself//Args\\raw?" 
+	"Returns raw command line arguments joined as a single string."
+	{
+		argsn 1
+	}
+
+	{
+	}
+
+	{
+`Rye-itself//Args\\raw?
+`	}
+
+	group "Rye-itself//History?" 
+	"Returns a block of the last N lines from REPL history."
+	{
+		argsn 2
+	}
+
+	{
+	}
+
+	{
+`Rye-itself//History? 10 ; last 10 lines (when running under REPL)
+`	}
+
+	group "capture-stdout" 
+	"Executes a block of code while capturing all output to stdout, returning the captured output as a string."
+	{
+		argsn 1
+	}
+
+	{
+		equal { capture-stdout { print 1 } } "1\n"
+		error { capture-stdout 1 }
+	}
+
+	{
+	}
+
 }
 
 section "Command Operations " "Running other programs" {

@@ -640,10 +640,12 @@ section "Bcrypt " "Functions for bcrypt password hashing and token generation" {
 	{
 		argsn 1
 		arg `password: String to hash`
-		returns `string containing the bcrypt hash of the password`
+		arg `password: String to hash`
+		returns `string containing the bcrypt hash of the passwordstring containing the bcrypt hash of the password`
 	}
 
 	{
+		equal { bcrypt-hash "secret" |type? } 'string
 	}
 
 	{
@@ -655,10 +657,14 @@ section "Bcrypt " "Functions for bcrypt password hashing and token generation" {
 		argsn 2
 		arg `hash: String containing the bcrypt hash`
 		arg `password: Plain text password to compare`
-		returns `integer 1 if the password matches the hash, 0 otherwise`
+		arg `hash: String containing the bcrypt hash`
+		arg `password: Plain text password to compare`
+		returns `integer 1 if the password matches the hash, 0 otherwiseinteger 1 if the password matches the hash, 0 otherwise`
 	}
 
 	{
+		equal { bcrypt-check "$2a$10$N9qo8uLOickgx2ZMRZo4e.PFTlCOKQOLawQy5AdYyZuG7JC2rA9e." "password" } 1
+		equal { bcrypt-check "$2a$10$N9qo8uLOickgx2ZMRZo4e.PFTlCOKQOLawQy5AdYyZuG7JC2rA9e." "wrong" } 0
 	}
 
 	{
@@ -669,10 +675,13 @@ section "Bcrypt " "Functions for bcrypt password hashing and token generation" {
 	{
 		argsn 1
 		arg `length: Integer number of random bytes to generate`
-		returns `string containing the hex-encoded random token`
+		arg `length: Integer number of random bytes to generate`
+		returns `string containing the hex-encoded random tokenstring containing the hex-encoded random token`
 	}
 
 	{
+		equal { generate-token 4 |length? } 8
+		error { generate-token "x" }
 	}
 
 	{

@@ -25,6 +25,12 @@ var builtins_printing = map[string]*env.Builtin{
 	// ##### Printing ##### "Functions for displaying and formatting values"
 	//
 
+	// Tests:
+	// stdout { prns "A" } "A "
+	// Args:
+	// * value: Value to print
+	// Returns:
+	// * returns the input value
 	"prns": {
 		Argsn: 1,
 		Doc:   "Prints a value followed by a space, returning the input value.",
@@ -39,6 +45,12 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { prn "A" } "A"
+	// Args:
+	// * value: Value to print
+	// Returns:
+	// * returns the input value
 	"prn": {
 		Argsn: 1,
 		Doc:   "Prints a value without adding a newline, returning the input value.",
@@ -53,6 +65,12 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { print "A" } "A\n"
+	// Args:
+	// * value: Value to print
+	// Returns:
+	// * returns the input value
 	"print": {
 		Argsn: 1,
 		Doc:   "Prints a value followed by a newline, returning the input value.",
@@ -67,6 +85,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { print2 "A" "B" } "A B\n"
+	// Args:
+	// * a: First value to print
+	// * b: Second value to print
+	// Returns:
+	// * returns the second input value
 	"print2": {
 		Argsn: 2,
 		Doc:   "Prints two values separated by a space and followed by a newline, returning the second value.",
@@ -88,6 +113,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { prn2 "A" "B" } "A B"
+	// Args:
+	// * a: First value to print
+	// * b: Second value to print
+	// Returns:
+	// * returns the second input value
 	"prn2": {
 		Argsn: 2,
 		Doc:   "Prints two values separated by a space without a newline, returning the second value.",
@@ -109,6 +141,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { prns2 "A" "B" } "A B "
+	// Args:
+	// * a: First value to print
+	// * b: Second value to print
+	// Returns:
+	// * returns the second input value
 	"prns2": {
 		Argsn: 2,
 		Doc:   "Prints two values each followed by a space, returning the second value.",
@@ -129,6 +168,15 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// ; equal { format "x {} y {}" { 1 2 } } "x 1 y 2"
+	// ; error { format 1 { 1 2 } }
+	// ; error { format "{}" 42 }
+	// Args:
+	// * template: String with {} placeholders
+	// * values: Block of values to substitute into the template in order
+	// Returns:
+	// * string with placeholders replaced
 	"format": {
 		Argsn: 2,
 		Doc:   "Formats a block of values using a format string with {} placeholders, returning the resulting string.",
@@ -151,6 +199,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// ; stdout { prnf 42 "Value={}" } "Value=42"
+	// Args:
+	// * value: Value to embed
+	// * template: String with {} placeholder
+	// Returns:
+	// * returns the input value after printing
 	"prnf": {
 		Argsn: 2,
 		Doc:   "Formats and prints a value by replacing {} in the template string, without a newline.",
@@ -167,6 +222,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// ; stdout { printf 42 "Value={}" } "Value=42\n"
+	// Args:
+	// * value: Value to embed
+	// * template: String with {} placeholder
+	// Returns:
+	// * returns the input value after printing
 	"printf": {
 		Argsn: 2,
 		Doc:   "Formats and prints a value by replacing {} in the template string, followed by a newline.",
@@ -183,6 +245,14 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// equal { embed 42 "v={}" } "v=42"
+	// error { 42 embed 123 }
+	// Args:
+	// * value: Value to embed
+	// * target: String or URI with {} placeholder
+	// Returns:
+	// * string or URI with placeholder replaced by the value
 	"embed": {
 		Argsn: 2,
 		Doc:   "Embeds a value into a string or URI by replacing {} placeholder with the string representation of the value.",
@@ -202,6 +272,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { prnv 42 "v={}" } "v=42"
+	// Args:
+	// * value: Value to embed
+	// * template: String with {} placeholder
+	// Returns:
+	// * returns the input value after printing
 	"prnv": {
 		Argsn: 2,
 		Doc:   "Embeds a value into a string by replacing {} placeholder and prints it without a newline, returning the input value.",
@@ -218,6 +295,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// stdout { printv 42 "v={}" } "v=42\n"
+	// Args:
+	// * value: Value to embed
+	// * template: String with {} placeholder
+	// Returns:
+	// * returns the input value after printing
 	"printv": {
 		Argsn: 2,
 		Doc:   "Embeds a value into a string by replacing {} placeholder and prints it followed by a newline, returning the input value.",
@@ -265,6 +349,12 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// ; equal { 42 inspect |type? } 'string
+	// Args:
+	// * value: Value to inspect
+	// Returns:
+	// * string with diagnostic representation
 	"inspect": {
 		Argsn: 1,
 		Doc:   "Returns a string containing detailed type and value information about a value.",
@@ -273,6 +363,12 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// equal { "A" esc } "\033A"
+	// Args:
+	// * str: Base string to prefix with escape character
+	// Returns:
+	// * string starting with escape character
 	"esc": {
 		Argsn: 1,
 		Doc:   "Creates an ANSI escape sequence by prepending the escape character (\\033) to the input string.",
@@ -286,6 +382,13 @@ var builtins_printing = map[string]*env.Builtin{
 		},
 	},
 
+	// Tests:
+	// equal { esc-val 42 "X={}" } "\033X=42"
+	// Args:
+	// * value: Value to embed
+	// * template: String with {} placeholder
+	// Returns:
+	// * string starting with escape character and embedded value
 	"esc-val": {
 		Argsn: 2,
 		Doc:   "Creates an ANSI escape sequence with an embedded value by replacing {} placeholder and prepending the escape character (\\033).",
